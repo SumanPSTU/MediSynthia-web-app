@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Two step Verification</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#f4f4f4;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f4f4f4;">
+      <tr>
+        <td align="center" style="padding:24px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px; background:#ffffff; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.05);">
+            
+            <!-- Header -->
+            <tr>
+              <td style="padding:32px 28px 20px 28px; text-align:center; border-bottom:1px solid #eeeeee;">
+                <h2 style="margin:0; font-family:'Segoe UI', Arial, sans-serif; color:#222222; font-size:24px; line-height:1.3;">
+                  Admin Two Step Verification
+                </h2>
+              </td>
+            </tr>
+
+            <!-- Message -->
+            <tr>
+              <td style="padding:22px 28px 6px 28px; font-family:'Segoe UI', Arial, sans-serif; color:#555555; font-size:16px; line-height:1.6;">
+                Hello, {{user}}<br/>
+                Use the one-time passcode (OTP) below to access your account securely.
+              </td>
+            </tr>
+
+            <!-- OTP -->
+            <tr>
+              <td align="center" style="padding:28px 28px 20px 28px;">
+                <div style="display:inline-block; padding:14px 20px; border-radius:10px; background:#f7f7f7; border:1px dashed #cccccc; font-family:Consolas, 'Courier New', monospace; font-weight:bold; font-size:36px; letter-spacing:8px; color:#222222;">
+                  {{d1}}{{d2}}{{d3}}{{d4}}{{d5}}{{d6}}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Expiry Info -->
+            <tr>
+              <td style="padding:10px 28px 8px 28px; font-family:'Segoe UI', Arial, sans-serif; color:#666666; font-size:14px; line-height:1.7; text-align:center;">
+                This code expires in <strong>3 minutes</strong>. Don’t share it with anyone.
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding:16px 28px 28px 28px; text-align:center; border-top:1px solid #eeeeee; font-family:'Segoe UI', Arial, sans-serif; color:#999999; font-size:12px;">
+                &copy;{{year}}  MediSynthia Pharmacy All rights reserved.
+              </td>
+            </tr>
+          </table>
+          <div style="line-height:24px; height:24px;">&zwj;</div>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

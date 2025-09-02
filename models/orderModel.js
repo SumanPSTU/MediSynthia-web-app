@@ -1,0 +1,90 @@
+// models/orderModel.js
+import mongoose from 'mongoose';
+
+const orderItemSchema = new mongoose.Schema({
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Products',
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true
+  },
+  price: {
+    type: Number,
+    required: true
+  },
+  name: {
+    type: String,
+    required: true
+  },
+  image: {
+    type: String,
+    required: true
+  }
+});
+
+const addressSchema = new mongoose.Schema({
+  street: { type: String, required: true },
+  city: { type: String, required: true },
+  state: { type: String, required: true },
+  zipCode: { type: String, required: true },
+  country: { type: String, required: true }
+});
+
+const orderSchema = new mongoose.Schema({
+  orderId: {
+    type: String,
+    unique: true,
+    required: true
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  items: [orderItemSchema],
+  totalAmount: {
+    type: Number,
+    required: true
+  },
+  shippingAddress: addressSchema,
+  paymentMethod: {
+    type: String,
+    enum: ['credit_card', 'debit_card', 'paypal', 'cash_on_delivery'],
+    required: true
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'failed', 'refunded'],
+    default: 'pending'
+  },
+  orderStatus: {
+    type: String,
+    enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
+    default: 'pending'
+  },
+  deliveryDate: {
+    type: Date
+  },
+  trackingNumber: {
+    type: String
+  },
+  carrier: {
+    type: String
+  }
+}, {
+  timestamps: true
+});
+
+// Generate order ID before saving
+orderSchema.pre('save', async function(next) {
+  if (!this.orderId) {
+    const count = await mongoose.model('Order').countDocuments();
+    this.orderId = `ORD${10000 + count + 1}`;
+  }
+  next();
+});
+
+export const Order = mongoose.model('Order', orderSchema);
