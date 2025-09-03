@@ -6,6 +6,7 @@ import productRoute from './routes/productRoute.js'
 import adminRoute from './routes/adminRoute.js'
 import addRoute from './routes/addRoute.js'
 import cartRoute from './routes/cartRoute.js'
+
 dotenv.config()
 const PORT = process.env.PORT || 3000;
 
