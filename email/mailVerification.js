@@ -18,7 +18,7 @@ const mailVerification = async (token, email) => {
     )
 
     const template = handlebars.compile(emailTemplateSource)
-    const htmlToSend = template({ token: encodeURIComponent(token) });
+    const htmlToSend = template({ url:process.env.FRONT_URL +"/verify/"+ encodeURIComponent(token) });
 
 
     const transporter = nodemailer.createTransport({
