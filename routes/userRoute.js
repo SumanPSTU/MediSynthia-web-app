@@ -3,7 +3,11 @@ import {  userAuthentication } from '../middleware/isAuthentication.js'
 import {
     changePassword,
     forgetPassword, loginUser, logoutUser,
-    registerUser, updateDeliveryAddress, updateUserBasicInfo, verification, verifyOtp
+    registerUser,
+    updateDeliveryAddress,
+    updateUserBasicInfo,
+    verification,
+    verifyOtp
 } from "../controllers/userController.js";
 import { userSchema, validateUser } from "../validators/userValidators.js";
 
@@ -11,6 +15,7 @@ const router = express.Router();
 
 router.post("/register", validateUser(userSchema), registerUser);
 router.post("/verify", verification);
+
 router.post("/login", loginUser);
 router.post("/logout", userAuthentication, logoutUser);
 router.post("/forget", forgetPassword);

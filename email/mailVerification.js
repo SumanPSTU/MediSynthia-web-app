@@ -10,7 +10,7 @@ dotenv.config()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const mailVerification = async (token, email) => {
+const mailVerification = async (token, email,name) => {
     
      const emailTemplateSource = fs.readFileSync(
         path.join(__dirname, "template.hbs"),
@@ -18,7 +18,11 @@ const mailVerification = async (token, email) => {
     )
 
     const template = handlebars.compile(emailTemplateSource)
-    const htmlToSend = template({ url:process.env.FRONT_URL +"/verify/"+ encodeURIComponent(token) });
+    const htmlToSend = template({ 
+        url:process.env.FRONT_URL +"/verify/"+ encodeURIComponent(token),
+        year:  new Date().getFullYear(),
+        name
+     });
 
 
     const transporter = nodemailer.createTransport({

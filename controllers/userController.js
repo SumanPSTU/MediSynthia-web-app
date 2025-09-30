@@ -55,7 +55,7 @@ export const registerUser = async (req, res) => {
     );
 
     // Send verification email
-    mailVerification(token, email);
+    mailVerification(token, email,newUser.username);
 
     newUser.token = token;
     await newUser.save();
@@ -123,7 +123,6 @@ export const verification = async (req, res) => {
     })
   }
 }
-
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
