@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const productSchema = new mongoose.Schema({
     productId: { type: String, required: true },
     productName: { type: String, required: true },
@@ -6,7 +7,7 @@ const productSchema = new mongoose.Schema({
     productSuplier:{type:String},
     strength: { type: String, required: true },
     dose: { type: String, required: true },
-    catagory: { type: String },
+    category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     productImgUrl: { type: String, required: false },
     productDescription: { type: String, required: true },
     sideEffect: { type: String },

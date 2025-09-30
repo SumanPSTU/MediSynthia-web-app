@@ -13,6 +13,7 @@ import addRoute from './routes/addRoute.js';
 import cartRoute from './routes/cartRoute.js';
 import orderRoute from './routes/orderRoute.js';
 import prescriptionRoute from './routes/prescriptionRoute.js';
+import category from './routes/categoryRoute.js';
 
 // Import socket handler
 import setupChatHandlers from "./socketHandlers/chatHandler.js";
@@ -38,6 +39,7 @@ app.use('/banneradd', addRoute);
 app.use('/cart', cartRoute);
 app.use('/order', orderRoute);
 app.use('/prescription', prescriptionRoute);
+app.use('/category',category);
 
 
 // HTTP server
