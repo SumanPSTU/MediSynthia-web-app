@@ -8,6 +8,7 @@ const productSchema = new mongoose.Schema({
     strength: { type: String, required: true },
     dose: { type: String, required: true },
     category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
+    subCategory: { type: mongoose.Schema.Types.ObjectId, ref: "SubCategory" },
     productImgUrl: { type: String, required: false },
     productDescription: { type: String, required: true },
     sideEffect: { type: String },

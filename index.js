@@ -14,6 +14,7 @@ import cartRoute from './routes/cartRoute.js';
 import orderRoute from './routes/orderRoute.js';
 import prescriptionRoute from './routes/prescriptionRoute.js';
 import category from './routes/categoryRoute.js';
+import subcategory from './routes/subCategoryRoute.js';
 
 // Import socket handler
 import setupChatHandlers from "./socketHandlers/chatHandler.js";
@@ -40,6 +41,7 @@ app.use('/cart', cartRoute);
 app.use('/order', orderRoute);
 app.use('/prescription', prescriptionRoute);
 app.use('/category',category);
+app.use('/subcategory',subcategory);
 
 
 // HTTP server

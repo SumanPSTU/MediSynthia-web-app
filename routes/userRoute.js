@@ -9,7 +9,10 @@ import {
     verification,
     verifyOtp
 } from "../controllers/userController.js";
-import { userSchema, validateUser } from "../validators/userValidators.js";
+import {
+    userSchema, 
+    validateUser
+ } from "../validators/userValidators.js";
 
 const router = express.Router();
 

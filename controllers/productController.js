@@ -66,6 +66,7 @@ export const addProduct = async (req, res) => {
       strength: data.strength,
       dose: data.dose,
       catagory: data.catagory,
+      subCategory:data.subCategory,
       productImgUrl: imageUrl,
       productDescription: data.productDescription,
       sideEffect: data.sideEffect,
