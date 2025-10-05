@@ -6,6 +6,7 @@ import {
   updateSubCategory,
   deleteSubCategory
 } from "../controllers/subCategoryController.js";
+import express from "express";
 import { uploadCategoryImage } from "../config/categoryImage.js";
 
 const router = express.Router();
