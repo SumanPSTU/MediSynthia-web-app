@@ -196,3 +196,21 @@ export const toggleActiveStatus = async (req, res) => {
     });
   }
 };
+
+export const getAllBanners = async (req, res) => {
+  try {
+    const banners = await BannerAdd.find();
+    res.status(200).json({
+      success: true,
+      message: "All banners retrieved successfully",
+      banners,
+      count: banners.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error retrieving banners",
+      error: error.message
+    });
+  }
+};
