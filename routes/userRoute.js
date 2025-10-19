@@ -7,7 +7,8 @@ import {
     updateDeliveryAddress,
     updateUserBasicInfo,
     verification,
-    verifyOtp
+    verifyOtp,
+    resendVerification
 } from "../controllers/userController.js";
 import {
     userSchema, 
@@ -17,7 +18,9 @@ import {
 const router = express.Router();
 
 router.post("/register", validateUser(userSchema), registerUser);
+
 router.post("/verify", verification);
+router.post("/resendverify", resendVerification);
 
 router.post("/login", loginUser);
 router.post("/logout", userAuthentication, logoutUser);

@@ -75,7 +75,7 @@ export const registerUser = async (req, res) => {
 
 export const verification = async (req, res) => {
   try {
-    const authHeader = req.headers.Authorization;
+    const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
@@ -123,6 +123,66 @@ export const verification = async (req, res) => {
     })
   }
 }
+
+export const resendVerification = async (req, res) =>{
+   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Authorization token is missing"
+      })
+    }
+
+    const token = authHeader.split(" ")[1]
+
+    let decoded;
+    try {
+      decoded =await jwt.verify(token, process.env.SECRET_KEY)
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: "Token verification failed"
+      })
+    }
+    const user = await User.findById(decoded.id)
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      })
+    }
+    if(user.isVerified === true){
+      return res.status(400).json({
+        success: false,
+        message: "User already verified"
+      })
+    }
+
+    const newToken = jwt.sign(
+      { id: user._id },
+      process.env.SECRET_KEY,
+      { expiresIn: "10m" }
+    );
+
+    user.token = newToken;
+    await user.save();
+
+    // Resend verification email
+   await mailVerification(newToken, user.email,user.username);
+
+    return res.status(200).json({
+      success: true,
+      message: "Verification email resent successfully"
+    })
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
