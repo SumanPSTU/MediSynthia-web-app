@@ -75,7 +75,7 @@ export const registerUser = async (req, res) => {
 
 export const verification = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.Authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,

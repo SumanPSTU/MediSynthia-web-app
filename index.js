@@ -4,6 +4,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import connectionDB from "./config/dbConnection.js";
 import uploadRoute from './routes/uploadRoute.js';
+import cors from "cors";
 
 // Import routes
 import userRoute from './routes/userRoute.js';
@@ -25,7 +26,10 @@ const PORT = process.env.PORT || 3000;
 // Express app
 const app = express();
 app.use('/upload', uploadRoute);
-
+app.use(cors(
+  {origin:"*"}
+  
+));
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -42,7 +46,6 @@ app.use('/order', orderRoute);
 app.use('/prescription', prescriptionRoute);
 app.use('/category',category);
 app.use('/subcategory',subcategory);
-
 
 // HTTP server
 const httpServer = createServer(app);
