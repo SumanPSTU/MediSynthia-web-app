@@ -10,7 +10,10 @@ import { sendOtpMail } from '../email/sendOtpMail.js';
 // Register Admin
 export const registerAdmin = async (req, res) => {
   try {
-    const { username, email, password,phone } = req.body;
+    const { username, email, password } = req.body;
+    const phone = "xxxxx";
+    
+    console.log(username,email,password);
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -103,6 +106,42 @@ export const verification = async (req, res) => {
     });
   }
 };
+
+// resend admin login otp
+
+export const resendOtp = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const admin = await Admin.findOne({ email });
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+    if (!admin.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not a verified admin"
+      });
+    }
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpired = new Date(Date.now() + 3 * 60 * 1000); // 3 minutes
+    admin.otp = otp;
+    admin.otpExpired = otpExpired;
+    await admin.save();
+    await sendOtpMailAdmin(email, otp, admin.username);
+    return res.status(200).json({
+      success: true,
+      message: "A new OTP has been sent to your email"
+    });
+  }catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
 // Admin Login (generates OTP)
 export const adminLoggedIn = async (req, res) => {
   try {
@@ -435,29 +474,42 @@ export const getAllUser = async (req, res) => {
 //search user
 export const searchUser = async (req, res) => {
   try {
-    const { search } = req.query;
+    const search = req.query.search?.trim();
+
     if (!search) {
       return res.status(400).json({
         success: false,
         message: "Search key is required"
-      })
+      });
     }
+
     const user = await User.find({
-      $or:[
-        {username:{ $regex: search, $options: "i" }},
-        { email: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } }
+      $or: [
+        { username: { $regex: `^${search}`, $options: "i" } },
+        { email: { $regex: `^${search}`, $options: "i" } },
+        { phone: { $regex: `^${search}`, $options: "i" } },
       ]
-    });
+    }).limit(20);
+
+    if (user.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No users found"
+      });
+    }
+
     res.status(200).json({
-      success:true,
-      results:user,
-      message:"User found"
-    })
-  }catch(error){
+      success: true,
+      results: user,
+      message: "User(s) found"
+    });
+
+  } catch (error) {
+    console.error("Error searching user:", error);
     return res.status(500).json({
-      success:false,
-      message:"Internal server Error!"
-    })
+      success: false,
+      message: "Internal Server Error"
+    });
   }
-}
+};
+

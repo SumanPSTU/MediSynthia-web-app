@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 app.use('/upload', uploadRoute);
 app.use(cors(
-  {origin:"*"}
+  {origin:process.env.CORS_URL}
   
 ));
 // Middleware
@@ -49,7 +49,6 @@ app.use('/subcategory',subcategory);
 
 // HTTP server
 const httpServer = createServer(app);
-
 // Socket.IO server
 const io = new Server(httpServer, {
   cors: {
@@ -66,6 +65,7 @@ connectionDB()
   .then(() => {
     httpServer.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      
     });
   })
   .catch((err) => {
