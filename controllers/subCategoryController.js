@@ -11,6 +11,7 @@ const CATEGORY_DIR = path.resolve("uploads/category");
 export const addSubCategory = async (req, res) => {
   try {
     const { name, category, description } = req.body;
+    const discountPercentage = req.body.discountPercentage !== undefined ? Number(req.body.discountPercentage) : undefined;
     const file = req.file;
 
     if (!name || !category) {
@@ -32,11 +33,18 @@ export const addSubCategory = async (req, res) => {
         .json({ message: "Subcategory already exists for this category" });
     }
 
+    if (discountPercentage !== undefined) {
+      if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
+        return res.status(400).json({ message: "discountPercentage must be a number between 0 and 100" });
+      }
+    }
+
     const subCategory = new SubCategory({
       name,
       category,
       description,
       imageUrl: file ? `/uploads/category/${file.filename}` : null,
+      discountPercentage: discountPercentage || 0,
     });
 
     await subCategory.save();
@@ -131,7 +139,6 @@ export const getSubCategoriesByCategory = async (req, res) => {
     });
   }
 };
-
 // -------------------------
 // Update Subcategory
 // -------------------------
@@ -139,6 +146,7 @@ export const updateSubCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, category, description } = req.body;
+    const discountPercentage = req.body.discountPercentage !== undefined ? Number(req.body.discountPercentage) : undefined;
     const file = req.file;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -169,6 +177,12 @@ export const updateSubCategory = async (req, res) => {
     if (name) subCategory.name = name;
     if (category) subCategory.category = category;
     if (description) subCategory.description = description;
+    if (discountPercentage !== undefined) {
+      if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
+        return res.status(400).json({ message: "discountPercentage must be a number between 0 and 100" });
+      }
+      subCategory.discountPercentage = discountPercentage;
+    }
 
     await subCategory.save();
 
@@ -225,5 +239,60 @@ export const deleteSubCategory = async (req, res) => {
       message: "Error deleting subcategory",
       error: error.message,
     });
+  }
+};
+
+// Update only discountPercentage for subcategory
+export const updateSubCategoryDiscount = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { discountPercentage } = req.body;
+
+    if (discountPercentage === undefined || discountPercentage === null) {
+      return res.status(400).json({ success: false, message: 'discountPercentage is required' });
+    }
+
+    const disc = Number(discountPercentage);
+    if (isNaN(disc) || disc < 0 || disc > 100) {
+      return res.status(400).json({ success: false, message: 'discountPercentage must be a number between 0 and 100' });
+    }
+
+    const subCategory = await SubCategory.findById(id);
+    if (!subCategory) return res.status(404).json({ success: false, message: 'Subcategory not found' });
+
+    subCategory.discountPercentage = disc;
+    await subCategory.save();
+
+    return res.status(200).json({ success: true, message: 'Subcategory discount updated', subCategory });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Error updating subcategory discount', error: error.message });
+  }
+};
+
+// Remove/reset subcategory discount
+export const removeSubCategoryDiscount = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const subCategory = await SubCategory.findById(id);
+    if (!subCategory) return res.status(404).json({ success: false, message: 'Subcategory not found' });
+
+    subCategory.discountPercentage = 0;
+    await subCategory.save();
+
+    return res.status(200).json({ success: true, message: 'Subcategory discount removed', subCategory });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Error removing subcategory discount', error: error.message });
+  }
+};
+
+// Get discount details for subcategory
+export const getSubCategoryDiscount = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const subCategory = await SubCategory.findById(id).select('_id name category discountPercentage').populate('category','_id name discountPercentage');
+    if (!subCategory) return res.status(404).json({ success: false, message: 'Subcategory not found' });
+    return res.status(200).json({ success: true, subCategory });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Error fetching subcategory discount', error: error.message });
   }
 };

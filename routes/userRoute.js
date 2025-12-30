@@ -18,7 +18,6 @@ import {
 const router = express.Router();
 
 router.post("/register", validateUser(userSchema), registerUser);
-
 router.post("/verify", verification);
 router.post("/resendverify", resendVerification);
 

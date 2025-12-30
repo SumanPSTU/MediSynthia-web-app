@@ -3,6 +3,22 @@ import mongoose from "mongoose";
 import { Cart } from '../models/cartModel.js';
 import { Products } from '../models/productModel.js';
 
+// compute effective price helper (product > subcategory > category)
+const computeEffectivePrice = (p) => {
+  const price = Number(p.productPrice) || 0;
+  const prodDisc = Number(p.discountPercentage) || 0;
+  const subDisc = p.subCategory ? Number(p.subCategory.discountPercentage || 0) : 0;
+  const catDisc = p.category ? Number(p.category.discountPercentage || 0) : 0;
+
+  let applied = 0;
+  if (prodDisc > 0) applied = prodDisc;
+  else if (subDisc > 0) applied = subDisc;
+  else if (catDisc > 0) applied = catDisc;
+
+  const effective = +(price * (1 - applied / 100)).toFixed(2);
+  return effective;
+};
+
 // Helper: recalc totals
 const recalcCart = (cart) => {
   cart.totalItems = cart.items.reduce((sum, item) => sum + Number(item.quantity), 0);
@@ -19,6 +35,26 @@ export const getCart = async (req, res) => {
     if (!cart) {
       cart = await Cart.create({ userId, items: [], totalPrice: 0, totalItems: 0 });
     }
+
+    // refresh stored item prices using current product/category/subcategory discounts
+    for (const item of cart.items) {
+      if (item.productId && typeof item.productId === 'object') {
+        const p = item.productId;
+        // Ensure populated category/subCategory are present
+        // if not populated, fetch product with population
+        if (!p.category || !p.subCategory) {
+          const fresh = await Products.findById(p._id).populate('category').populate('subCategory');
+          if (fresh) {
+            item.price = computeEffectivePrice(fresh);
+          }
+        } else {
+          item.price = computeEffectivePrice(p);
+        }
+      }
+    }
+
+    recalcCart(cart);
+    await cart.save();
 
     res.status(200).json({ success: true, cart });
   } catch (error) {
@@ -39,10 +75,10 @@ export const addToCart = async (req, res) => {
     if (!qty || qty <= 0)
       return res.status(400).json({ success: false, message: "Quantity must be a positive number" });
 
-    const product = await Products.findById(productId);
+    const product = await Products.findById(productId).populate('category').populate('subCategory');
     if (!product) return res.status(404).json({ success: false, message: "Product not found" });
 
-    const productPrice = Number(product.productPrice);
+    const productPrice = computeEffectivePrice(product);
     if (isNaN(productPrice)) return res.status(400).json({ success: false, message: "Product price invalid" });
 
     let cart = await Cart.findOne({ userId });
@@ -52,12 +88,14 @@ export const addToCart = async (req, res) => {
 
     if (existingItemIndex !== -1) {
       cart.items[existingItemIndex].quantity += qty;
+      // update price in case discounts changed
+      cart.items[existingItemIndex].price = productPrice;
     } else {
       cart.items.push({
         productId,
         quantity: qty,
         price: productPrice,
-        name: product.name || "Unnamed Product",
+        name: product.productName || "Unnamed Product",
         image: product.productImgUrl || "",
       });
     }

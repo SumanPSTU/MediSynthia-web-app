@@ -13,6 +13,8 @@ const productSchema = new mongoose.Schema({
     productDescription: { type: String, required: true },
     sideEffect: { type: String },
     isAvailable: { type: Boolean,default: true },
-    productPrice: { type: Number, required: true }
+    productPrice: { type: Number, required: true },
+    // discount percentage applied specifically to this product (0-100)
+    discountPercentage: { type: Number, default: 0 }
 });
 export const Products = mongoose.model("Products", productSchema);

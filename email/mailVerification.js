@@ -44,7 +44,6 @@ const mailVerification = async (token, email,name) => {
         if (error) {
             throw new Error(error);
         }
-        console.log("Email send");
     });
 
 }

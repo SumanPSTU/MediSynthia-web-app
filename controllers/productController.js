@@ -1,4 +1,5 @@
 import { Products } from "../models/productModel.js";
+import { Category } from "../models/categoryModels.js";
 import fs from "fs";
 import path from 'path'
 import { fileURLToPath } from "url";
@@ -14,7 +15,9 @@ export const getProduct = async (req, res) => {
 
     const products = await Products.find()
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .populate('category')
+      .populate('subCategory');
     const total = await Products.countDocuments();
 
     if (!products || products.length === 0) {
@@ -24,13 +27,66 @@ export const getProduct = async (req, res) => {
       });
     }
 
+    // compute effective price for each product based on product/subcategory/category discounts
+    const computeEffectivePrice = (p) => {
+      const price = Number(p.productPrice) || 0;
+      const prodDisc = Number(p.discountPercentage) || 0;
+      const subDisc = p.subCategory ? Number(p.subCategory.discountPercentage || 0) : 0;
+      const catDisc = p.category ? Number(p.category.discountPercentage || 0) : 0;
+
+      let applied = 0;
+      if (prodDisc > 0) applied = prodDisc;
+      else if (subDisc > 0) applied = subDisc;
+      else if (catDisc > 0) applied = catDisc;
+
+      const effective = +(price * (1 - applied / 100)).toFixed(2);
+      return { originalPrice: price, discountPercentage: applied, effectivePrice: effective };
+    };
+
+    const productsWithPrice = products.map(p => {
+      const priceInfo = computeEffectivePrice(p);
+      return { ...p.toObject(), priceInfo };
+    });
+
     return res.status(200).json({
       success: true,
       page,
       limit,
       totalProducts: total,
       totalPages: Math.ceil(total / limit),
-      products
+      products: productsWithPrice
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+export const getProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID is required"
+      });
+    }
+
+    const product = await Products.findById(id)
+      .populate("category")
+      .populate("subCategory");
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      product
     });
   } catch (error) {
     res.status(500).json({
@@ -52,6 +108,24 @@ export const addProduct = async (req, res) => {
     const imageUrl = `/uploads/${file.filename}`;
 
     const data = req.body;
+
+    // validate discountPercentage if provided
+    if (data && data.discountPercentage !== undefined) {
+      const disc = Number(data.discountPercentage);
+      if (isNaN(disc) || disc < 0 || disc > 100) {
+        return res.status(400).json({ success: false, message: 'discountPercentage must be a number between 0 and 100' });
+      }
+      data.discountPercentage = disc;
+    }
+
+    // validate productPrice if provided
+    if (data && data.productPrice !== undefined) {
+      const price = Number(data.productPrice);
+      if (isNaN(price) || price < 0) {
+        return res.status(400).json({ success: false, message: 'productPrice must be a non-negative number' });
+      }
+      data.productPrice = price;
+    }
     if (!data) {
       res.status(400).json({
         success: false,
@@ -65,12 +139,13 @@ export const addProduct = async (req, res) => {
       productGeniric: data.productGeniric,
       strength: data.strength,
       dose: data.dose,
-      catagory: data.catagory,
-      subCategory:data.subCategory,
+      category: data.catagory || data.category,
+      subCategory: data.subCategory,
       productImgUrl: imageUrl,
       productDescription: data.productDescription,
       sideEffect: data.sideEffect,
-      productPrice: data.productPrice
+      productPrice: data.productPrice,
+      discountPercentage: data.discountPercentage || 0
     });
     res.status(201).json({
       success: true,
@@ -152,7 +227,8 @@ export const deleteProduct = async (req, res) => {
       });
     }
 
-    const product = await Products.findById(productId);
+    const product = await Products.findByIdAndDelete(productId);
+
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -160,21 +236,11 @@ export const deleteProduct = async (req, res) => {
       });
     }
 
-    // Delete image from filesystem first
-    if (product.productImgUrl) {
-      const imagePath = path.join(__dirname, "..", product.productImgUrl);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    }
-
-    // Delete product from DB
-    await Products.findByIdAndDelete(productId);
-
     return res.status(200).json({
       success: true,
-      message: "Productd eleted successfully",
+      message: "Product deleted successfully",
     });
+
   } catch (error) {
     console.error("Delete Product Error:", error);
     return res.status(500).json({
@@ -219,35 +285,193 @@ export const isAvailable = async (req, res) => {
   }
 };
 
+// Update product discount percentage
+export const updateProductDiscount = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { discountPercentage } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID is required"
+      });
+    }
+
+    if (discountPercentage === undefined || discountPercentage === null) {
+      return res.status(400).json({
+        success: false,
+        message: "discountPercentage is required"
+      });
+    }
+
+    const discount = Number(discountPercentage);
+    if (isNaN(discount) || discount < 0 || discount > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "discountPercentage must be a number between 0 and 100"
+      });
+    }
+
+    const product = await Products.findById(id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
+      });
+    }
+
+    product.discountPercentage = discount;
+    await product.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Product discount updated successfully",
+      product
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error updating product discount",
+      error: error.message
+    });
+  }
+};
+
+// Remove/Reset product discount (set to 0)
+export const removeProductDiscount = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID is required"
+      });
+    }
+
+    const product = await Products.findById(id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
+      });
+    }
+
+    product.discountPercentage = 0;
+    await product.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Product discount removed successfully",
+      product
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error removing product discount",
+      error: error.message
+    });
+  }
+};
+
+// Get product discount details
+export const getProductDiscount = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID is required"
+      });
+    }
+
+    const product = await Products.findById(id).select('_id productName productPrice discountPercentage').populate('category', 'discountPercentage').populate('subCategory', 'discountPercentage');
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
+      });
+    }
+
+    // compute effective discount
+    const computeDiscount = (p) => {
+      const prodDisc = Number(p.discountPercentage) || 0;
+      const subDisc = p.subCategory ? Number(p.subCategory.discountPercentage || 0) : 0;
+      const catDisc = p.category ? Number(p.category.discountPercentage || 0) : 0;
+
+      let applied = 0;
+      if (prodDisc > 0) applied = prodDisc;
+      else if (subDisc > 0) applied = subDisc;
+      else if (catDisc > 0) applied = catDisc;
+
+      const originalPrice = Number(p.productPrice) || 0;
+      const discountedPrice = +(originalPrice * (1 - applied / 100)).toFixed(2);
+
+      return {
+        productDiscount: prodDisc,
+        subCategoryDiscount: subDisc,
+        categoryDiscount: catDisc,
+        appliedDiscount: applied,
+        originalPrice,
+        discountedPrice,
+        savings: +(originalPrice - discountedPrice).toFixed(2)
+      };
+    };
+
+    return res.status(200).json({
+      success: true,
+      product: product.toObject(),
+      discountDetails: computeDiscount(product)
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching product discount",
+      error: error.message
+    });
+  }
+};
+
+// search products
 export const searchProducts = async (req, res) => {
   try {
-    const { q } = req.query;
+    const search = req.query.search?.trim();
 
-    if (!q) {
+    if (!search) {
       return res.status(400).json({
         success: false,
         message: "Search key is required"
       });
     }
 
-    // Escape regex special characters to prevent injection
-    const escapedKey = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+     const products = await Products.find({
+          $or: [
+            { productName: { $regex: `^${search}`, $options: "i" } },
+            { productGeniric: { $regex: `^${search}`, $options: "i" } },
+          ]
+        }).limit(20);
 
-    // MongoDB regex with ^ ensures it matches from the start only
-    const products = await Products.find({
-      $or: [
-        { productName: { $regex: `^${escapedKey}`, $options: "i" } },
-        { catagory: { $regex: `^${escapedKey}`, $options: "i" } },
-        { productGeniric: { $regex: `^${escapedKey}`, $options: "i" } }
-        
-      ]
-    });
+    if (products.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No products found"
+      });
+    }
 
     res.status(200).json({
       success: true,
-      results: products
+      products,
+      message: "Product(s) found"
     });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error searching product:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    });
   }
 };

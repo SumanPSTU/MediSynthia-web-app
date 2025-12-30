@@ -6,6 +6,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mailVerification from '../email/mailVerification.js';
 import { sendOtpMail } from '../email/sendOtpMail.js';
+import dotenv from 'dotenv'
+dotenv.config();
 
 // Register Admin
 export const registerAdmin = async (req, res) => {
@@ -13,7 +15,7 @@ export const registerAdmin = async (req, res) => {
     const { username, email, password } = req.body;
     const phone = "xxxxx";
     
-    console.log(username,email,password);
+    
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -39,14 +41,15 @@ export const registerAdmin = async (req, res) => {
     });
 
     const token = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "10m" });
-    mailVerification(token, email);
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
+    mailVerification(token, superAdminEmail);
     admin.token = token;
     await admin.save();
 
     return res.status(201).json({
       success: true,
       message: "Admin registered successfully. Please verify your email",
-      data: admin,
+      superAdminEmail
     });
   } catch (error) {
     return res.status(500).json({
@@ -107,8 +110,59 @@ export const verification = async (req, res) => {
   }
 };
 
-// resend admin login otp
+export const resendMailForVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
 
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required"
+      });
+    }
+
+    const admin = await Admin.findOne({ email });
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+
+    if (admin.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin already verified"
+      });
+    }
+
+    const token = jwt.sign(
+      { id: admin._id },
+      process.env.SECRET_KEY,
+      { expiresIn: "10m" }
+    );
+
+    admin.token = token;
+    await admin.save();
+
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
+    await mailVerification(token, superAdminEmail);
+
+    return res.status(200).json({
+      success: true,
+      message: "Verification email resent to Super Admin"
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// resend admin login otp
 export const resendOtp = async (req, res) => {
   try {
     const email = req.params.email;

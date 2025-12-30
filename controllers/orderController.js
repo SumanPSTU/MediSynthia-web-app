@@ -11,7 +11,7 @@ export const createOrder = async (req, res) => {
     const { shippingAddress, paymentMethod } = req.body;
     
     // Get user's cart
-    const cart = await Cart.findOne({ userId });
+    const cart = await Cart.findOne({ userId }).populate('items.productId');
     
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({
@@ -19,12 +19,51 @@ export const createOrder = async (req, res) => {
         message: 'Cart is empty'
       });
     }
-    
+    // compute effective price per item (product > subcategory > category)
+    const computeEffectivePrice = (p) => {
+      const price = Number(p.productPrice) || 0;
+      const prodDisc = Number(p.discountPercentage) || 0;
+      const subDisc = p.subCategory ? Number(p.subCategory.discountPercentage || 0) : 0;
+      const catDisc = p.category ? Number(p.category.discountPercentage || 0) : 0;
+
+      let applied = 0;
+      if (prodDisc > 0) applied = prodDisc;
+      else if (subDisc > 0) applied = subDisc;
+      else if (catDisc > 0) applied = catDisc;
+
+      const effective = +(price * (1 - applied / 100)).toFixed(2);
+      return effective;
+    };
+
+    const orderItems = [];
+    let totalAmount = 0;
+
+    for (const item of cart.items) {
+      const prod = item.productId;
+      // ensure populated category/subCategory
+      let fullProd = prod;
+      if (!prod.category && !prod.subCategory) {
+        fullProd = await Products.findById(prod._id).populate('category').populate('subCategory');
+      }
+
+      const price = computeEffectivePrice(fullProd);
+
+      orderItems.push({
+        productId: fullProd._id,
+        quantity: item.quantity,
+        price,
+        name: fullProd.productName || 'Unnamed Product',
+        image: fullProd.productImgUrl || ''
+      });
+
+      totalAmount += price * item.quantity;
+    }
+
     // Create order
     const order = new Order({
       userId,
-      items: cart.items,
-      totalAmount: cart.totalPrice,
+      items: orderItems,
+      totalAmount,
       shippingAddress,
       paymentMethod
     });
@@ -215,28 +254,45 @@ export const createOrderForCustomer = async (req, res) => {
     
     const orderItems = [];
     let totalAmount = 0;
-    
+
+    // compute effective price helper
+    const computeEffectivePrice = (p) => {
+      const price = Number(p.productPrice) || 0;
+      const prodDisc = Number(p.discountPercentage) || 0;
+      const subDisc = p.subCategory ? Number(p.subCategory.discountPercentage || 0) : 0;
+      const catDisc = p.category ? Number(p.category.discountPercentage || 0) : 0;
+
+      let applied = 0;
+      if (prodDisc > 0) applied = prodDisc;
+      else if (subDisc > 0) applied = subDisc;
+      else if (catDisc > 0) applied = catDisc;
+
+      const effective = +(price * (1 - applied / 100)).toFixed(2);
+      return effective;
+    };
+
     for (const item of items) {
       const { productId, quantity } = item;
-      
-      // ✅ Use Products model
-      const products = await Products.findById(productId);
-      if (!products) {
+
+      const prod = await Products.findById(productId).populate('category').populate('subCategory');
+      if (!prod) {
         return res.status(404).json({
           success: false,
-          message: `Products with ID ${productId} not found`
+          message: `Product with ID ${productId} not found`
         });
       }
-      
+
+      const price = computeEffectivePrice(prod);
+
       orderItems.push({
         productId,
         quantity,
-        price: products.price,
-        name: products.name,
-        image: products.images[0] || ''
+        price,
+        name: prod.productName || 'Unnamed Product',
+        image: prod.productImgUrl || ''
       });
-      
-      totalAmount += products.price * quantity;
+
+      totalAmount += price * quantity;
     }
     
     const order = new Order({
@@ -265,6 +321,41 @@ export const createOrderForCustomer = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error creating order for customer',
+      error: error.message
+    });
+  }
+};
+
+// get all orders - admin only (optional enhancement)
+export const getAllOrders = async (req, res) => {
+  try {
+    // Get page and limit from query, set defaults if not provided
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Fetch orders with pagination
+    const orders = await Order.find()
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Get total count for pagination info
+    const totalOrders = await Order.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      orders,
+      page,
+      totalPages: Math.ceil(totalOrders / limit),
+      totalOrders,
+      count: orders.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching orders',
       error: error.message
     });
   }
