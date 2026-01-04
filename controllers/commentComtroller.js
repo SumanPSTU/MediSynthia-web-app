@@ -1,4 +1,4 @@
-import { Comment } from "../models/cartModel.js"; // adjust path if needed
+import { Comment } from "../models/commentModel.js"; // adjust path if needed
 
 /**
  * ✅ Create a comment (review)
