@@ -14,7 +14,12 @@ import {
     userSchema, 
     validateUser
  } from "../validators/userValidators.js";
-
+import {
+    createComment,
+    getCommentsByProduct,
+    updateComment,
+    deleteComment 
+} from "../controllers/commentComtroller.js";
 const router = express.Router();
 
 router.post("/register", validateUser(userSchema), registerUser);
@@ -28,5 +33,11 @@ router.post("/verifyotp/:email", verifyOtp)
 router.post("/changepass/:email", changePassword)
 router.put('/deleveryaddress',userAuthentication,updateDeliveryAddress)
 router.put('/updatebasicaddress',userAuthentication,updateUserBasicInfo)
+
+
+router.post("/comment", userAuthentication, createComment);
+router.get("/comment/:productId", getCommentsByProduct);
+router.put("/comment/:id", userAuthentication, updateComment);
+router.delete("/comment/:id", userAuthentication, deleteComment);
 
 export default router; 
