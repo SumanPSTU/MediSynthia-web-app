@@ -1,13 +1,10 @@
-import { Comment } from "../models/commentModel.js"; // adjust path if needed
+import { Comment } from "../models/commentModel.js"; 
 
-/**
- * ✅ Create a comment (review)
- * POST /api/comments
- */
+
 export const createComment = async (req, res) => {
   try {
     const { productId, content, rating } = req.body;
-    const userId = req.user._id; // from auth middleware
+    const userId = req.user._id;
 
     if (!productId || !content || !rating) {
       return res.status(400).json({
@@ -57,10 +54,7 @@ export const createComment = async (req, res) => {
 
 
 
-/**
- * ✅ Get comments for a product
- * GET /api/comments/:productId
- */
+
 export const getCommentsByProduct = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -86,10 +80,7 @@ export const getCommentsByProduct = async (req, res) => {
     });
   }
 };
-/**
- * ✅ Update comment
- * PUT /api/comments/:id
- */
+
 export const updateComment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -125,10 +116,6 @@ export const updateComment = async (req, res) => {
 };
 
 
-/**
- * ✅ Delete comment (soft)
- * DELETE /api/comments/:id
- */
 export const deleteComment = async (req, res) => {
   try {
     const { id } = req.params;

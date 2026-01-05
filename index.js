@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 app.use('/upload', uploadRoute);
 app.use(cors(
-  {origin:process.env.CORS_URL}
+  {origin:process.env.CORS_URL || process.env.FRONT_URL || process.env.ADMIN_URL || '*'}
   
 ));
 // Middleware
