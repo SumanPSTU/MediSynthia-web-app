@@ -22,12 +22,13 @@ import setupChatHandlers from "./socketHandlers/chatHandler.js";
 
 dotenv.config();
 const PORT = process.env.PORT || 3000;
-
+const crosOrigin = [process.env.FRONT_URL, process.env.ADMIN_URL];
 // Express app
 const app = express();
 app.use('/upload', uploadRoute);
+console.log("CORS Origins:", crosOrigin);
 app.use(cors(
-  {origin:process.env.CORS_URL || process.env.FRONT_URL || process.env.ADMIN_URL || '*'}
+  {origin:crosOrigin}
   
 ));
 // Middleware
