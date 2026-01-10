@@ -8,10 +8,10 @@ const router = express.Router();
 
 router.get('/getproduct', getProduct);
 router.get('/search', searchProducts);
+router.get('/getproduct/:id',getProductById);
 router.post('/addproduct',adminAuthentication,uploads.single('file'),addProduct)
 router.put('/updateproduct/:id',adminAuthentication,uploads.single('file'),updateProduct);
 router.delete('/deleteproduct/:id',adminAuthentication,deleteProduct);
-router.get('/getproduct/:id',adminAuthentication,getProductById);
 router.put('/isavailable/:id',adminAuthentication,isAvailable);
 router.put('/discount/:id',adminAuthentication,updateProductDiscount);
 router.delete('/discount/:id',adminAuthentication,removeProductDiscount);

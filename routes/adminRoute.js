@@ -23,7 +23,7 @@ router.post('/changepass/:email',changePassword);
 
 
 router.post('/getuser',adminAuthentication,getAllUser);
-router.get('/getpr-escription',adminAuthentication,getUserPrescriptions);
+router.get('/get-prescription',adminAuthentication,getUserPrescriptions);
 router.get('/get-all-prescription',adminAuthentication,getAllPrescriptions);
 router.delete('/delete-prescription',adminAuthentication,deletePrescription);
 router.delete("/admin/delete-prescriptions-before-date", adminAuthentication, deletePrescriptionsBeforeDate);

@@ -7,6 +7,7 @@ const prescriptionSchema = new mongoose.Schema({
         required: true
     },
     notes: { type: String },
+    status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
     prescriptionUrl:{type:String},
     dateIssued: { type: Date, default: Date.now }
 });
