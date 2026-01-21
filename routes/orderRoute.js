@@ -4,7 +4,8 @@ import {
     getOrderById,
     updateOrderStatus,
     cancelOrder,
-    createOrderForCustomer
+    createOrderForCustomer,
+    getAllOrders
 } from "../controllers/orderController.js";
 
 import { userAuthentication,adminAuthentication } from "../middleware/isAuthentication.js";
@@ -29,5 +30,8 @@ router.route('/admin/orders/create')
 
 router.route('/admin/orders/:orderId')
     .put(adminAuthentication, updateOrderStatus);
+
+// Get all orders for admin
+router.get('/admin/orders', adminAuthentication, getAllOrders);
 
 export default router;

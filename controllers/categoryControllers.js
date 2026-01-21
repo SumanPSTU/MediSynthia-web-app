@@ -62,33 +62,34 @@ export const searchCategory = async (req, res) => {
   try {
     const q = req.params.q?.trim();
     if (!q || q === undefined) {
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
-        message: ""
-      })
+        message: "Search query is required"
+      });
     }
     const categories = await Category.find({
       $or: [
-        { name: { $regex: `^${search}`, $options: "i" } },
+        { name: { $regex: q, $options: "i" } },
       ]
     }).limit(20);
 
     if(categories.length === 0){
       return res.status(404).json({
         success:false,
-        message:"category not found"
-      })
+        message:"Category not found"
+      });
     }
-    res.ststus(200).json({
+    res.status(200).json({
       success:true,
-      message:"category found!",
+      message:"Category found!",
       categories
-    })
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Category not found"
-    })
+      message: "Error searching category",
+      error: error.message
+    });
   }
 }
 

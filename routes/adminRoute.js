@@ -3,7 +3,7 @@ import { adminLoggedIn, adminOTPVerify, changePassword, forgetPassword, getAllUs
 import express from 'express'
 import { adminAuthentication } from '../middleware/isAuthentication.js';
 import {deletePrescriptionsBeforeDate} from '../controllers/prescriptionController.js'
-import { getUserPrescriptions,getAllPrescriptions, deletePrescription } from '../controllers/prescriptionController.js';
+import { getAllPrescriptions, deletePrescription } from '../controllers/prescriptionController.js';
 const router = express.Router()
 
 
@@ -23,10 +23,10 @@ router.post('/changepass/:email',changePassword);
 
 
 router.post('/getuser',adminAuthentication,getAllUser);
-router.get('/get-prescription',adminAuthentication,getUserPrescriptions);
+// router.get('/get-prescription',adminAuthentication,getUserPrescriptions);
 router.get('/get-all-prescription',adminAuthentication,getAllPrescriptions);
-router.delete('/delete-prescription',adminAuthentication,deletePrescription);
-router.delete("/admin/delete-prescriptions-before-date", adminAuthentication, deletePrescriptionsBeforeDate);
+router.delete('/delete-prescription', adminAuthentication, deletePrescription);
+router.delete("/delete-prescriptions-before-date", adminAuthentication, deletePrescriptionsBeforeDate);
 
 
 export default router;

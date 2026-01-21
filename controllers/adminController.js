@@ -58,6 +58,7 @@ export const registerAdmin = async (req, res) => {
     });
   }
 };
+
 // Admin Sign Up verification
 export const verification = async (req, res) => {
   try {

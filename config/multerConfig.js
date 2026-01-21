@@ -6,17 +6,18 @@ import { dirname } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-
-const storage = multer.diskStorage({
+// Product images storage - save to uploads/products/
+const productStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, "../uploads"));
+        const productDir = path.join(__dirname, "../uploads/products");
+        cb(null, productDir);
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname));
     }
 });
 
-const fileFilter = (req, file, cb) => {
+const productFileFilter = (req, file, cb) => {
     const allowedExt = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
     const ext = path.extname(file.originalname).toLowerCase();
 
@@ -27,8 +28,11 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-// final export
-export const uploads = multer({
-    storage: storage,
-    fileFilter: fileFilter
+// Export for product uploads
+export const uploadProductImage = multer({
+    storage: productStorage,
+    fileFilter: productFileFilter
 });
+
+// Default export for backward compatibility
+export const uploads = uploadProductImage;

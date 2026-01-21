@@ -27,7 +27,6 @@ export const getProduct = async (req, res) => {
       });
     }
 
-    // compute effective price for each product based on product/subcategory/category discounts
     const computeEffectivePrice = (p) => {
       const price = Number(p.productPrice) || 0;
       const prodDisc = Number(p.discountPercentage) || 0;
@@ -105,7 +104,7 @@ export const addProduct = async (req, res) => {
         message: "Product image is required",
       });
     }
-    const imageUrl = `/uploads/${file.filename}`;
+    const imageUrl = `/uploads/products/${file.filename}`;
 
     const data = req.body;
 
