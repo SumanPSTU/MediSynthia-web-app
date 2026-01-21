@@ -8,7 +8,8 @@ import {
     updateUserBasicInfo,
     verification,
     verifyOtp,
-    resendVerification
+    resendVerification,
+    getUserProfile
 } from "../controllers/userController.js";
 import {
     userSchema, 
@@ -33,6 +34,7 @@ router.post("/verifyotp/:email", verifyOtp)
 router.post("/changepass/:email", changePassword)
 router.put('/deleveryaddress',userAuthentication,updateDeliveryAddress)
 router.put('/updatebasicaddress',userAuthentication,updateUserBasicInfo)
+router.get('/profile', userAuthentication, getUserProfile);
 
 
 router.post("/comment", userAuthentication, createComment);

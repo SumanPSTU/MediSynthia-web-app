@@ -1,10 +1,15 @@
 import multer from "multer";
 import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Store files in /uploads/category
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(process.cwd(), "uploads/category"));
+    cb(null, path.join(__dirname, "../uploads/category"));
   },
   filename: (req, file, cb) => {
     const uniqueName = Date.now() + "-" + file.originalname;
@@ -21,3 +26,4 @@ const fileFilter = (req, file, cb) => {
 };
 
 export const uploadCategoryImage = multer({ storage, fileFilter });
+

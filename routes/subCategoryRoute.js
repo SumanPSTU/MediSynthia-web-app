@@ -1,3 +1,4 @@
+import express from "express";
 import {
   addSubCategory,
   getAllSubCategories,
@@ -9,17 +10,16 @@ import {
   removeSubCategoryDiscount,
   getSubCategoryDiscount
 } from "../controllers/subCategoryController.js";
-import express from "express";
-import { uploadCategoryImage } from "../config/categoryImage.js";
+import { uploadSubCategoryImage } from "../config/subCategoryImage.js";
 import { adminAuthentication } from "../middleware/isAuthentication.js";
 
 const router = express.Router();
 
-router.post("/",uploadCategoryImage.single("image"), addSubCategory);
+router.post("/", uploadSubCategoryImage.single("image"), addSubCategory);
 router.get("/", getAllSubCategories);
 router.get("/:id", getSubCategory);
 router.get("/by-category/:categoryId", getSubCategoriesByCategory);
-router.put("/:id", adminAuthentication, uploadCategoryImage.single("image"), updateSubCategory);
+router.put("/:id", adminAuthentication, uploadSubCategoryImage.single("image"), updateSubCategory);
 router.delete("/:id", adminAuthentication, deleteSubCategory);
 
 // discount endpoints

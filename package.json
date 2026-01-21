@@ -1,7 +1,7 @@
 {
   "name": "back-end",
   "version": "1.0.0",
-  "description": "",
+  "description": "\"# MediSynthia-web-app\"",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -24,5 +24,14 @@
     "nodemon": "^3.1.10",
     "socket.io": "^4.8.1",
     "yup": "^1.7.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SumanPSTU/MediSynthia-web-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SumanPSTU/MediSynthia-web-app/issues"
+  },
+  "homepage": "https://github.com/SumanPSTU/MediSynthia-web-app#readme",
+  "devDependencies": {}
 }

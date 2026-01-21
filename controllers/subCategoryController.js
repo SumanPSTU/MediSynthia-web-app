@@ -3,11 +3,8 @@ import { SubCategory } from "../models/subCategoryModel.js";
 import fs from "fs";
 import path from "path";
 
-const CATEGORY_DIR = path.resolve("uploads/category");
+const CATEGORY_DIR = path.resolve("uploads/subCategory");
 
-// -------------------------
-// Add Subcategory with Image
-// -------------------------
 export const addSubCategory = async (req, res) => {
   try {
     const { name, category, description } = req.body;
@@ -43,7 +40,7 @@ export const addSubCategory = async (req, res) => {
       name,
       category,
       description,
-      imageUrl: file ? `/uploads/category/${file.filename}` : null,
+      imageUrl: file ? `/uploads/subCategory/${file.filename}` : null,
       discountPercentage: discountPercentage || 0,
     });
 
@@ -116,13 +113,13 @@ export const getSubCategory = async (req, res) => {
 // -------------------------
 export const getSubCategoriesByCategory = async (req, res) => {
   try {
-    const { category } = req.params;
+    const { categoryId } = req.params;
 
-    // if (!mongoose.Types.ObjectId.isValid(categoryId)) {
-    //   return res.status(400).json({ message: "Invalid category ID" });
-    // }
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({ message: "Invalid category ID" });
+    }
 
-    const subCategories = await SubCategory.find({ name: category })
+    const subCategories = await SubCategory.find({ category: categoryId })
       .populate("category")
       .sort({ createdAt: -1 });
 
@@ -171,7 +168,7 @@ export const updateSubCategory = async (req, res) => {
         );
         if (fs.existsSync(oldFilePath)) fs.unlinkSync(oldFilePath);
       }
-      subCategory.imageUrl = `/uploads/category/${file.filename}`;
+      subCategory.imageUrl = `/uploads/subCategory/${file.filename}`;
     }
 
     if (name) subCategory.name = name;

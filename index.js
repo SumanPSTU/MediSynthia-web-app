@@ -47,6 +47,7 @@ app.use('/order', orderRoute);
 app.use('/prescription', prescriptionRoute);
 app.use('/category',category);
 app.use('/subcategory',subcategory);
+// app.use('/chat',chatRoute);
 
 // HTTP server
 const httpServer = createServer(app);

@@ -4,6 +4,11 @@ const setupChatHandlers = (io) => {
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
+    // Handle errors
+    socket.on("error", (error) => {
+      console.error("Socket error:", error);
+    });
+
     // User joins their personal channel
     socket.on("joinUser", (userId) => {
       socket.join(userId);
@@ -13,10 +18,16 @@ const setupChatHandlers = (io) => {
     // Send direct message to a specific user
     socket.on("sendDirectMessage", async (data) => {
       try {
+        console.log("Received sendDirectMessage:", data);
         const { senderId, receiverId, message, senderType } = data;
         
         if (!senderId || !receiverId) {
           socket.emit("error", { message: "Sender and receiver IDs are required" });
+          return;
+        }
+
+        if (!message) {
+          socket.emit("error", { message: "Message content is required" });
           return;
         }
 
@@ -25,11 +36,12 @@ const setupChatHandlers = (io) => {
           senderId,
           receiverId,
           message,
-          senderType,
+          senderType: senderType || 'user',
           timestamp: new Date()
         });
 
         await chatMessage.save();
+        console.log("Message saved with ID:", chatMessage._id);
 
         // Emit to the receiver
         io.to(receiverId).emit("receiveDirectMessage", {

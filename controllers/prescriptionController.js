@@ -2,12 +2,22 @@ import { Prescription } from "../models/prescriptionModel.js";
 import fs from "fs";
 import path from "path";
 
-const PRESCRIPTION_DIR = path.join(process.cwd(), "prescription"); // adjust if your folder is different
+const UPLOADS_DIR = path.join(process.cwd(), "uploads");
 
+// Ensure uploads directory exists
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+// Ensure prescriptions directory exists
+const PRESCRIPTION_DIR = path.join(UPLOADS_DIR, "prescriptions");
+if (!fs.existsSync(PRESCRIPTION_DIR)) {
+  fs.mkdirSync(PRESCRIPTION_DIR, { recursive: true });
+}
 
 export const uploadPrescription = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user?._id || req.user?.id;
     const data = req.body;
     const file = req.file;
 
@@ -25,7 +35,7 @@ export const uploadPrescription = async (req, res) => {
       });
     }
 
-    const prescriptionUrl = `/prescription/${file.filename}`;
+    const prescriptionUrl = `/uploads/prescriptions/${file.filename}`;
 
     const prescription = await Prescription.create({
       userId,
@@ -39,6 +49,7 @@ export const uploadPrescription = async (req, res) => {
       prescription,
     });
   } catch (error) {
+    console.error("Upload prescription error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -46,7 +57,7 @@ export const uploadPrescription = async (req, res) => {
 // ✅ Update prescription (replace file & notes)
 export const updatePrescription = async (req, res) => {
   try {
-    const { id } = req.params; 
+    const { id } = req.params;
     const data = req.body;
     const file = req.file;
 
@@ -55,13 +66,14 @@ export const updatePrescription = async (req, res) => {
       return res.status(404).json({ success: false, message: "Prescription not found" });
     }
 
-    // 🗑 Delete old file if new one is uploaded
+    // Delete old file if new one is uploaded
     if (file && prescription.prescriptionUrl) {
-      const oldFilePath = path.join(PRESCRIPTION_DIR, path.basename(prescription.prescriptionUrl));
+      const oldFileName = path.basename(prescription.prescriptionUrl);
+      const oldFilePath = path.join(PRESCRIPTION_DIR, oldFileName);
       if (fs.existsSync(oldFilePath)) {
         fs.unlinkSync(oldFilePath);
       }
-      prescription.prescriptionUrl = `/prescription/${file.filename}`;
+      prescription.prescriptionUrl = `/uploads/prescriptions/${file.filename}`;
     }
 
     if (data.notes) {
@@ -76,6 +88,7 @@ export const updatePrescription = async (req, res) => {
       prescription,
     });
   } catch (error) {
+    console.error("Update prescription error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -83,16 +96,22 @@ export const updatePrescription = async (req, res) => {
 // ✅ Delete prescription
 export const deletePrescription = async (req, res) => {
   try {
-    const { id } = req.params;
+    // Support both path params and query params
+    const id = req.params.id || req.query.id;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "Prescription ID is required" });
+    }
 
     const prescription = await Prescription.findById(id);
     if (!prescription) {
       return res.status(404).json({ success: false, message: "Prescription not found" });
     }
 
-    // 🗑 Delete file
+    // Delete file
     if (prescription.prescriptionUrl) {
-      const filePath = path.join(PRESCRIPTION_DIR, path.basename(prescription.prescriptionUrl));
+      const fileName = path.basename(prescription.prescriptionUrl);
+      const filePath = path.join(PRESCRIPTION_DIR, fileName);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
@@ -102,29 +121,14 @@ export const deletePrescription = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Prescription deleted successfully!",
+      message: "Prescription deleted successfully",
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ✅ (Optional) Get all prescriptions for a user
-export const getUserPrescriptions = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const prescriptions = await Prescription.find({ userId });
-
-    res.status(200).json({
-      success: true,
-      prescriptions,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ✅ Get all prescriptions with pagination (Admin only)
+//  Get all prescriptions with pagination (Admin only)
 export const getAllPrescriptions = async (req, res) => {
   try {
     // page=1&limit=10
