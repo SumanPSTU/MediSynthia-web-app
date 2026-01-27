@@ -156,8 +156,95 @@ export const getAllPrescriptions = async (req, res) => {
   }
 };
 
+// Get prescriptions by user ID (Admin only)
+export const getPrescriptionsByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const prescriptions = await Prescription.find({ userId })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      prescriptions,
+      count: prescriptions.length
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 
+
+
+// ✅ Get prescription by ID (for admin viewing details)
+export const getPrescriptionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "Prescription ID is required" });
+    }
+
+    const prescription = await Prescription.findById(id).populate('userId', 'name email phone profilePicture');
+    
+    if (!prescription) {
+      return res.status(404).json({ success: false, message: "Prescription not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      prescription,
+    });
+  } catch (error) {
+    console.error("Get prescription by ID error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ✅ Update prescription status (for admin)
+export const updatePrescriptionStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "Prescription ID is required" });
+    }
+
+    if (!status) {
+      return res.status(400).json({ success: false, message: "Status is required" });
+    }
+
+    // Validate status value
+    const validStatuses = ['Pending', 'Approved', 'Rejected'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Invalid status. Allowed values: ${validStatuses.join(', ')}` 
+      });
+    }
+
+    const prescription = await Prescription.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    ).populate('userId', 'name email phone profilePicture');
+
+    if (!prescription) {
+      return res.status(404).json({ success: false, message: "Prescription not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Prescription status updated successfully",
+      prescription,
+    });
+  } catch (error) {
+    console.error("Update prescription status error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 // Delete prescriptions on or before a specific date
 export const deletePrescriptionsBeforeDate = async (req, res) => {

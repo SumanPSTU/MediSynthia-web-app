@@ -568,3 +568,256 @@ export const searchUser = async (req, res) => {
   }
 };
 
+// Block user
+export const blockUser = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isBlocked: true },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "User blocked successfully",
+      data: user
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Unblock user
+export const unblockUser = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isBlocked: false },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "User unblocked successfully",
+      data: user
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ================= ADMIN MANAGEMENT =================
+
+// Get all admins with pagination
+export const getAllAdmins = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const admins = await Admin.find()
+      .select("-password -otp -otpExpired -token")
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const totalAdmins = await Admin.countDocuments();
+
+    return res.status(200).json({
+      success: true,
+      data: admins,
+      pagination: {
+        total: totalAdmins,
+        page,
+        limit,
+        totalPages: Math.ceil(totalAdmins / limit),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Search admins
+export const searchAdmin = async (req, res) => {
+  try {
+    const search = req.query.search?.trim();
+
+    if (!search) {
+      return res.status(400).json({
+        success: false,
+        message: "Search key is required"
+      });
+    }
+
+    const admins = await Admin.find({
+      $or: [
+        { username: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+      ]
+    })
+      .select("-password -otp -otpExpired -token")
+      .limit(20);
+
+    if (admins.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No admins found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      results: admins,
+      message: "Admin(s) found"
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    });
+  }
+};
+
+// Get admin by ID
+export const getAdminById = async (req, res) => {
+  try {
+    const adminId = req.params.id;
+
+    const admin = await Admin.findById(adminId)
+      .select("-password -otp -otpExpired -token");
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: admin
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Block admin
+export const blockAdmin = async (req, res) => {
+  try {
+    const adminId = req.params.adminId;
+
+    const admin = await Admin.findByIdAndUpdate(
+      adminId,
+      { isBlocked: true },
+      { new: true }
+    ).select("-password -otp -otpExpired -token");
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin blocked successfully",
+      data: admin
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Unblock admin
+export const unblockAdmin = async (req, res) => {
+  try {
+    const adminId = req.params.adminId;
+
+    const admin = await Admin.findByIdAndUpdate(
+      adminId,
+      { isBlocked: false },
+      { new: true }
+    ).select("-password -otp -otpExpired -token");
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin unblocked successfully",
+      data: admin
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Get admin statistics
+export const getAdminStats = async (req, res) => {
+  try {
+    const total = await Admin.countDocuments();
+    const verified = await Admin.countDocuments({ isVerified: true });
+    const loggedIn = await Admin.countDocuments({ isLoggedIn: true });
+    const blocked = await Admin.countDocuments({ isBlocked: true });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        total,
+        verified,
+        loggedIn,
+        blocked
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

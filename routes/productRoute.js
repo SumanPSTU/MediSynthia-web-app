@@ -1,5 +1,5 @@
 import express from 'express';
-import { getProduct,getProductById , addProduct,updateProduct,deleteProduct,isAvailable,searchProducts,updateProductDiscount,removeProductDiscount,getProductDiscount } from '../controllers/productController.js';
+import { getProduct,getProductById , addProduct,updateProduct,deleteProduct,isAvailable,searchProducts,updateProductDiscount,removeProductDiscount,getProductDiscount,getProductCount } from '../controllers/productController.js';
 import { uploadProductImage } from '../config/multerConfig.js';
 import { adminAuthentication } from '../middleware/isAuthentication.js';
 
@@ -16,5 +16,7 @@ router.put('/isavailable/:id',adminAuthentication,isAvailable);
 router.put('/discount/:id',adminAuthentication,updateProductDiscount);
 router.delete('/discount/:id',adminAuthentication,removeProductDiscount);
 router.get('/discount/:id',getProductDiscount);
+
+router.get('/count', getProductCount);
 
 export default router;
