@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     phone:{type:String,required:true},
     isVerified: { type: Boolean, default: false },
+    isBlocked: { type: Boolean, default: false },
     isLoggedIn: { type: Boolean, default: false },
     token: { type: String, default: null },
     otp: { type: String, default: null },

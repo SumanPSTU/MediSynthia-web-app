@@ -83,12 +83,19 @@ export const adminAuthentication = async (req, res, next) => {
       });
     }
 
-    const admin = await Admin.findById(decoded.id);
+    console.log('✅ Token decoded, admin ID:', decoded.id);
+    let admin = await Admin.findById(decoded.id);
+    
+    // If not found in Admin collection, check User collection (admin might use user account)
     if (!admin) {
-      return res.status(404).json({
-        success: false,
-        message: "Admin not found",
-      });
+      admin = await User.findById(decoded.id);
+      if (!admin) {
+        console.log('❌ Neither Admin nor User found with ID:', decoded.id);
+        return res.status(404).json({
+          success: false,
+          message: "Admin not found",
+        });
+      }
     }
 
     req.admin = admin._id;

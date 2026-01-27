@@ -1,5 +1,6 @@
 import { Products } from "../models/productModel.js";
 import { Category } from "../models/categoryModels.js";
+import mongoose from "mongoose";
 import fs from "fs";
 import path from 'path'
 import { fileURLToPath } from "url";
@@ -10,20 +11,43 @@ export const getProduct = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
+    const category = req.query.category;
+    const subCategory = req.query.subCategory;
+    const search = req.query.search;
+    const exclude = req.query.exclude;
 
     const skip = (page - 1) * limit;
 
-    const products = await Products.find()
+    // Build filter object
+    const filter = {};
+    if (category) filter.category = category;
+    if (subCategory) filter.subCategory = subCategory;
+    if (search) {
+      // Use regex to search for products where the name contains the search term
+      // This will match "Ace" with "Ace", "Ace Plus", "Ace Pro", etc.
+      filter.productName = { $regex: `\\b${search}`, $options: 'i' };
+    }
+    // Exclude current product by ID
+    if (exclude && mongoose.Types.ObjectId.isValid(exclude)) {
+      filter._id = { $ne: new mongoose.Types.ObjectId(exclude) };
+    }
+
+    const products = await Products.find(filter)
       .skip(skip)
       .limit(limit)
       .populate('category')
       .populate('subCategory');
-    const total = await Products.countDocuments();
+    const total = await Products.countDocuments(filter);
 
+    // Return empty array with success if no products found (instead of 404)
     if (!products || products.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No products found"
+      return res.status(200).json({
+        success: true,
+        page,
+        limit,
+        totalProducts: 0,
+        totalPages: 0,
+        products: []
       });
     }
 
@@ -434,11 +458,10 @@ export const getProductDiscount = async (req, res) => {
   }
 };
 
-// search products
+
 export const searchProducts = async (req, res) => {
   try {
     const search = req.query.search?.trim();
-
     if (!search) {
       return res.status(400).json({
         success: false,
@@ -450,6 +473,7 @@ export const searchProducts = async (req, res) => {
           $or: [
             { productName: { $regex: `^${search}`, $options: "i" } },
             { productGeniric: { $regex: `^${search}`, $options: "i" } },
+            
           ]
         }).limit(20);
 
@@ -471,6 +495,36 @@ export const searchProducts = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal Server Error"
+    });
+  }
+};
+
+// Get product count by category or subCategory
+export const getProductCount = async (req, res) => {
+  try {
+    const { categoryId, subCategoryId } = req.query;
+
+    if (!categoryId && !subCategoryId) {
+      return res.status(400).json({
+        success: false,
+        message: "categoryId or subCategoryId is required"
+      });
+    }
+
+    const filter = {};
+    if (categoryId) filter.category = categoryId;
+    if (subCategoryId) filter.subCategory = subCategoryId;
+
+    const count = await Products.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };

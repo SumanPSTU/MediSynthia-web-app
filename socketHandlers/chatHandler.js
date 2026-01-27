@@ -13,6 +13,12 @@ const setupChatHandlers = (io) => {
     socket.on("joinUser", (userId) => {
       socket.join(userId);
       console.log(`User ${userId} joined their personal channel`);
+      
+      // Also join "admin" channel if user is admin (has _id as numeric or UUID)
+      if (userId && userId !== 'admin' && userId !== 'guest' && !userId.startsWith('guest_')) {
+        socket.join('admin');
+        console.log(`Admin user joined admin channel`);
+      }
     });
 
     // Send direct message to a specific user
@@ -52,6 +58,19 @@ const setupChatHandlers = (io) => {
           senderType,
           timestamp: chatMessage.timestamp
         });
+
+        // Also emit to admin channel if message is being sent to "admin"
+        // This ensures admins receive messages even if they joined with their actual ID
+        if (receiverId === 'admin') {
+          io.to('admin').emit("receiveDirectMessage", {
+            _id: chatMessage._id,
+            senderId,
+            receiverId,
+            message,
+            senderType,
+            timestamp: chatMessage.timestamp
+          });
+        }
 
         // Also send back to sender for confirmation
         socket.emit("messageSent", {
@@ -108,6 +127,22 @@ const setupChatHandlers = (io) => {
           senderType,
           timestamp: chatMessage.timestamp
         });
+
+        // Also emit to admin channel if message is being sent to "admin"
+        if (receiverId === 'admin') {
+          io.to('admin').emit("receiveDirectMessage", {
+            _id: chatMessage._id,
+            senderId,
+            receiverId,
+            message: chatMessage.message,
+            fileUrl: chatMessage.fileUrl,
+            fileName: chatMessage.fileName,
+            fileSize: chatMessage.fileSize,
+            fileType: chatMessage.fileType,
+            senderType,
+            timestamp: chatMessage.timestamp
+          });
+        }
 
         // Also send back to sender for confirmation
         socket.emit("messageSent", {

@@ -5,7 +5,9 @@ import {
     updateOrderStatus,
     cancelOrder,
     createOrderForCustomer,
-    getAllOrders
+    getAllOrders,
+    getOrdersByUserId,
+    getOrderStatuses
 } from "../controllers/orderController.js";
 
 import { userAuthentication,adminAuthentication } from "../middleware/isAuthentication.js";
@@ -28,10 +30,22 @@ router.route('/orders/:orderId')
 router.route('/admin/orders/create')
     .post(adminAuthentication, createOrderForCustomer);
 
-router.route('/admin/orders/:orderId')
-    .put(adminAuthentication, updateOrderStatus);
+// Update order status (separate route)
+router.put('/admin/orders/:orderId', adminAuthentication, updateOrderStatus);
+
+// Get order by ID for admin
+router.get('/admin/orders/:orderId', adminAuthentication, getOrderById);
 
 // Get all orders for admin
 router.get('/admin/orders', adminAuthentication, getAllOrders);
+
+// Get orders by user ID for admin
+router.get('/admin/user-orders/:userId', adminAuthentication, getOrdersByUserId);
+
+// Get order by ID for admin (alternative route)
+router.get('/getOrderById/:id', adminAuthentication, getOrderById);
+
+// Get order statuses (for admin dropdown)
+router.get('/statuses', adminAuthentication, getOrderStatuses);
 
 export default router;
