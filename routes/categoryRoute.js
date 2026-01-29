@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.post("/", uploadCategoryImage.single("image"), addCategory);
 router.get("/", getCategory);
+router.get("/admin/",adminAuthentication, getCategory);
 router.delete("/:id", adminAuthentication, deleteCategory);
 router.put("/:id", adminAuthentication, uploadCategoryImage.single("image"), updateCategory);
 router.get('/searchcategory',searchCategory);
