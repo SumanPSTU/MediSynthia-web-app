@@ -4,6 +4,7 @@ import express from 'express'
 import { adminAuthentication } from '../middleware/isAuthentication.js';
 import {deletePrescriptionsBeforeDate, getPrescriptionById, updatePrescriptionStatus} from '../controllers/prescriptionController.js'
 import { getAllPrescriptions, deletePrescription } from '../controllers/prescriptionController.js';
+
 const router = express.Router()
 
 
@@ -13,7 +14,7 @@ router.post('/resend-emain/:email',resendMailForVerification)
 router.post('/login', adminLoggedIn);
 router.post('/verify/:email', adminOTPVerify);
 router.post('/resend-otp/:email', resendOtp);
-router.get('/alluser'/*, adminAuthentication*/, getAllUser);
+router.get('/alluser', adminAuthentication, getAllUser);
 router.get('/search-user',searchUser)
 router.patch('/block-user/:userId', adminAuthentication, blockUser);
 router.patch('/unblock-user/:userId', adminAuthentication, unblockUser);
@@ -21,8 +22,6 @@ router.post('/logout', adminAuthentication, logoutAdmin);
 router.post('/forget', forgetPassword);
 router.post('/verifyotp/:email', verifyOtp);
 router.post('/changepass/:email',changePassword);
-
-
 
 
 router.get('/getuser',adminAuthentication,getAllUser);
@@ -40,6 +39,10 @@ router.get('/admin/:id', adminAuthentication, getAdminById);
 router.patch('/block-admin/:adminId', adminAuthentication, blockAdmin);
 router.patch('/unblock-admin/:adminId', adminAuthentication, unblockAdmin);
 router.get('/admin-stats', adminAuthentication, getAdminStats);
+
+//generic
+
+
 
 export default router;
 

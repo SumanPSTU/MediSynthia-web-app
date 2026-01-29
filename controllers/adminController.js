@@ -14,8 +14,8 @@ export const registerAdmin = async (req, res) => {
   try {
     const { username, email, password } = req.body;
     const phone = "xxxxx";
-    
-    
+
+
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -44,7 +44,7 @@ export const registerAdmin = async (req, res) => {
     const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
     const adminRUL = process.env.ADMIN_URL;
     console.log(adminRUL);
-    mailVerification(token, superAdminEmail,username,adminRUL);
+    mailVerification(token, superAdminEmail, username, adminRUL);
     admin.token = token;
     await admin.save();
 
@@ -89,8 +89,6 @@ export const verification = async (req, res) => {
       });
     }
 
-    console.log(decoded.id)
-
     const admin = await Admin.findById(decoded.id);
     if (!admin) {
       return res.status(404).json({
@@ -98,10 +96,10 @@ export const verification = async (req, res) => {
         message: "Admin not found"
       });
     }
-    if(admin.isVerified){
+    if (admin.isVerified) {
       return res.status(200).json({
-        success:false,
-        messege:"Admin already verified!"
+        success: false,
+        messege: "Admin already verified!"
       })
     }
     admin.token = null;
@@ -157,7 +155,7 @@ export const resendMailForVerification = async (req, res) => {
     await admin.save();
     const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
     const adminURL = process.env.ADMIN_URL;
-    await mailVerification(token, superAdminEmail,admin.username,adminURL);
+    await mailVerification(token, superAdminEmail, admin.username, adminURL);
     return res.status(200).json({
       success: true,
       message: "Verification email resent to Super Admin"
@@ -198,7 +196,7 @@ export const resendOtp = async (req, res) => {
       success: true,
       message: "A new OTP has been sent to your email"
     });
-  }catch (error) {
+  } catch (error) {
     return res.status(500).json({
       success: false,
       message: error.message
@@ -234,11 +232,10 @@ export const adminLoggedIn = async (req, res) => {
       });
     }
 
-    if (admin.isBlocked){
-      await logoutAdmin(req,res);
+    if (admin.isBlocked) {
       return res.status(403).json({
-        success:false,
-        messege:"Your account is blocked!"
+        success: false,
+        messege: "Your account is blocked!"
       })
     }
 
@@ -351,9 +348,27 @@ export const adminOTPVerify = async (req, res) => {
 // Logout Admin
 export const logoutAdmin = async (req, res) => {
   try {
-    const userId = req.userId;
+    const userId = req.admin;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
     await Session.deleteMany({ userId });
-    await Admin.findByIdAndUpdate(userId, { isLoggedIn: false });
+
+    const admin = await Admin.findById(userId);
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+
+    admin.isLoggedIn = false;
+    await admin.save();
 
     return res.status(200).json({
       success: true,
@@ -366,6 +381,7 @@ export const logoutAdmin = async (req, res) => {
     });
   }
 };
+
 
 
 // Forget Password (Send OTP) 

@@ -3,6 +3,7 @@ import { addSupplier, getSuppliers, getSupplierById, searchSuppliers, updateSupp
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { adminAuthentication } from "../middleware/isAuthentication.js";
 
 const router = express.Router();
 
@@ -41,11 +42,11 @@ const uploadSupplierImage = multer({
 });
 
 // Routes
-router.post("/", uploadSupplierImage.single("image"), addSupplier);
-router.get("/", getSuppliers);
-router.get("/:id", getSupplierById);
-router.get('/search/:q', searchSuppliers);
-router.put("/:id", uploadSupplierImage.single("image"), updateSupplier);
-router.delete("/:id", deleteSupplier);
+router.post("/", uploadSupplierImage.single("image"),adminAuthentication, addSupplier);
+router.get("/",adminAuthentication, getSuppliers);
+router.get("/:id",adminAuthentication, getSupplierById);
+router.get('/search/:q',adminAuthentication, searchSuppliers);
+router.put("/:id", uploadSupplierImage.single("image"),adminAuthentication, updateSupplier);
+router.delete("/:id",adminAuthentication, deleteSupplier);
 
 export default router;

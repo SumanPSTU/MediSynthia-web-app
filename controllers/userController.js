@@ -212,6 +212,14 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    if(user.isBlocked){
+      await logoutUser(req,res);
+      return res.status(403).json({
+        success:false,
+        messege:"Your account is blocked!"
+      })
+    }
+
     const passwordCheck = await bcrypt.compare(password, user.password);
     if (!passwordCheck) {
       return res.status(402).json({

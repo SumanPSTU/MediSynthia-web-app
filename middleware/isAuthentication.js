@@ -45,6 +45,10 @@ export const userAuthentication = async (req, res, next) => {
 
     if(user.isBlocked){
       await logoutUser(req,res);
+      return res.status(403).json({
+        success:false,
+        messege:"Your account is blocked!"
+      })
     }
     req.user = user;
     next();
@@ -100,7 +104,10 @@ export const adminAuthentication = async (req, res, next) => {
       }
     }
     if(admin.isBlocked){
-      await logoutAdmin(req,res);
+      return res.status(403).json({
+        success:false,
+        messege:"Your account is blocked!"
+      })
     }
 
     req.admin = admin._id;

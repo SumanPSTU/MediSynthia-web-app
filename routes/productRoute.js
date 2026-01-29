@@ -7,6 +7,7 @@ import { adminAuthentication } from '../middleware/isAuthentication.js';
 const router = express.Router();
 
 router.get('/getproduct', getProduct);
+router.get('/getproduct-admin',adminAuthentication,getProduct);
 router.get('/search', searchProducts);
 router.get('/getproduct/:id',getProductById);
 router.post('/addproduct',adminAuthentication,uploadProductImage.single('file'),addProduct)

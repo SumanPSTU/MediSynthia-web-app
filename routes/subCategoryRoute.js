@@ -17,6 +17,7 @@ const router = express.Router();
 
 router.post("/", uploadSubCategoryImage.single("image"), addSubCategory);
 router.get("/", getAllSubCategories);
+router.get("/admin/",adminAuthentication, getAllSubCategories);
 router.get("/:id", getSubCategory);
 router.get("/by-category/:categoryId", getSubCategoriesByCategory);
 router.put("/:id", adminAuthentication, uploadSubCategoryImage.single("image"), updateSubCategory);
