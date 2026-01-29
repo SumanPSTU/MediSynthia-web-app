@@ -71,6 +71,7 @@ export const verification = async (req, res) => {
     }
 
     const token = authHeader.split(" ")[1];
+    console.log(token)
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.SECRET_KEY);
@@ -88,6 +89,7 @@ export const verification = async (req, res) => {
     }
 
     const admin = await Admin.findById(decoded.id);
+    console.log(admin);
     if (!admin) {
       return res.status(404).json({
         success: false,
@@ -113,7 +115,7 @@ export const verification = async (req, res) => {
 
 export const resendMailForVerification = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = req.params.email;
 
     if (!email) {
       return res.status(400).json({

@@ -1,4 +1,4 @@
-import { adminLoggedIn, adminOTPVerify, blockUser, blockAdmin, changePassword, forgetPassword, getAllAdmins, getAdminById, getAdminStats, getAllUser, logoutAdmin, registerAdmin, resendOtp, searchAdmin, searchUser, unblockUser, unblockAdmin, verification, verifyOtp } from '../controllers/adminController.js';
+import { adminLoggedIn, adminOTPVerify, blockUser, blockAdmin, changePassword, forgetPassword, getAllAdmins, getAdminById, getAdminStats, getAllUser, logoutAdmin, registerAdmin, resendOtp, searchAdmin, searchUser, unblockUser, unblockAdmin, verification, verifyOtp, resendMailForVerification } from '../controllers/adminController.js';
 
 import express from 'express'
 import { adminAuthentication } from '../middleware/isAuthentication.js';
@@ -9,6 +9,7 @@ const router = express.Router()
 
 router.post('/register', registerAdmin);
 router.post('/verify', verification);
+router.post('/resend-emain/:email',resendMailForVerification)
 router.post('/login', adminLoggedIn);
 router.post('/verify/:email', adminOTPVerify);
 router.post('/resend-otp/:email', resendOtp);
