@@ -7,6 +7,7 @@ const adminSchema = new mongoose.Schema({
     phone:{type:String,required:true},
     isVerified: { type: Boolean, default: false },
     isLoggedIn: { type: Boolean, default: false },
+    isBlocked:{type:Boolean,default:false},
     token: { type: String, default: null },
     otp: { type: String, default: null },
     otpExpired: { type: Date, default: null },

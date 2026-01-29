@@ -2,6 +2,8 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { User } from '../models/userModel.js';
 import { Admin } from '../models/adminModel.js';
+import { logoutUser } from '../controllers/userController.js';
+import { logoutAdmin } from '../controllers/adminController.js';
 
 dotenv.config();
 export const userAuthentication = async (req, res, next) => {
@@ -41,9 +43,10 @@ export const userAuthentication = async (req, res, next) => {
       });
     }
 
-    // ✅ Attach full user object
+    if(user.isBlocked){
+      await logoutUser(req,res);
+    }
     req.user = user;
-
     next();
   } catch (err) {
     console.error(err);
@@ -83,19 +86,21 @@ export const adminAuthentication = async (req, res, next) => {
       });
     }
 
-    console.log('✅ Token decoded, admin ID:', decoded.id);
+    
     let admin = await Admin.findById(decoded.id);
     
     // If not found in Admin collection, check User collection (admin might use user account)
     if (!admin) {
       admin = await User.findById(decoded.id);
       if (!admin) {
-        console.log('❌ Neither Admin nor User found with ID:', decoded.id);
         return res.status(404).json({
           success: false,
           message: "Admin not found",
         });
       }
+    }
+    if(admin.isBlocked){
+      await logoutAdmin(req,res);
     }
 
     req.admin = admin._id;

@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer"
-import  dotenv from 'dotenv'
+import dotenv from 'dotenv'
 import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
@@ -10,19 +10,21 @@ dotenv.config()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const mailVerification = async (token, email,name) => {
-    
-     const emailTemplateSource = fs.readFileSync(
+const mailVerification = async (token, email, name, URL) => {
+
+    const emailTemplateSource = fs.readFileSync(
         path.join(__dirname, "template.hbs"),
         "utf-8"
     )
 
-    const template = handlebars.compile(emailTemplateSource)
-    const htmlToSend = template({ 
-        url:process.env.FRONT_URL +"/verify/"+ encodeURIComponent(token),
-        year:  new Date().getFullYear(),
+    const template = handlebars.compile(emailTemplateSource);
+
+    const htmlToSend = template({
+        url: URL + "/verify/" + encodeURIComponent(token),
+        year: new Date().getFullYear(),
         name
-     });
+    });
+
 
 
     const transporter = nodemailer.createTransport({

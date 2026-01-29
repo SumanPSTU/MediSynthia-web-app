@@ -55,7 +55,8 @@ export const registerUser = async (req, res) => {
     );
 
     // Send verification email
-    mailVerification(token, email,newUser.username);
+    const userURL = process.env.FRONT_URL;
+    mailVerification(token, email,newUser.username,userURL);
 
     newUser.token = token;
     await newUser.save();
@@ -138,7 +139,7 @@ export const resendVerification = async (req, res) =>{
 
     let decoded;
     try {
-      decoded =await jwt.verify(token, process.env.SECRET_KEY)
+      decoded =  jwt.verify(token, process.env.SECRET_KEY)
     } catch (err) {
       return res.status(400).json({
         success: false,
@@ -168,8 +169,10 @@ export const resendVerification = async (req, res) =>{
     user.token = newToken;
     await user.save();
 
+    const URL = process.env.FRONT_URL;
+
     // Resend verification email
-   await mailVerification(newToken, user.email,user.username);
+   await mailVerification(newToken, user.email,user.username,URL);
 
     return res.status(200).json({
       success: true,

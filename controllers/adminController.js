@@ -42,7 +42,9 @@ export const registerAdmin = async (req, res) => {
 
     const token = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "10m" });
     const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
-    mailVerification(token, superAdminEmail);
+    const adminRUL = process.env.ADMIN_URL;
+    console.log(adminRUL);
+    mailVerification(token, superAdminEmail,username,adminRUL);
     admin.token = token;
     await admin.save();
 
@@ -71,7 +73,6 @@ export const verification = async (req, res) => {
     }
 
     const token = authHeader.split(" ")[1];
-    console.log(token)
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.SECRET_KEY);
@@ -88,15 +89,21 @@ export const verification = async (req, res) => {
       });
     }
 
+    console.log(decoded.id)
+
     const admin = await Admin.findById(decoded.id);
-    console.log(admin);
     if (!admin) {
       return res.status(404).json({
         success: false,
         message: "Admin not found"
       });
     }
-
+    if(admin.isVerified){
+      return res.status(200).json({
+        success:false,
+        messege:"Admin already verified!"
+      })
+    }
     admin.token = null;
     admin.isVerified = true;
     await admin.save();
@@ -148,10 +155,9 @@ export const resendMailForVerification = async (req, res) => {
 
     admin.token = token;
     await admin.save();
-
     const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
-    await mailVerification(token, superAdminEmail);
-
+    const adminURL = process.env.ADMIN_URL;
+    await mailVerification(token, superAdminEmail,admin.username,adminURL);
     return res.status(200).json({
       success: true,
       message: "Verification email resent to Super Admin"
@@ -199,6 +205,8 @@ export const resendOtp = async (req, res) => {
     });
   }
 }
+
+
 // Admin Login (generates OTP)
 export const adminLoggedIn = async (req, res) => {
   try {
@@ -218,11 +226,20 @@ export const adminLoggedIn = async (req, res) => {
       });
     }
 
+
     if (!admin.isVerified) {
       return res.status(403).json({
         success: false,
         message: "You are not a verified admin"
       });
+    }
+
+    if (admin.isBlocked){
+      await logoutAdmin(req,res);
+      return res.status(403).json({
+        success:false,
+        messege:"Your account is blocked!"
+      })
     }
 
     const matchPass = await bcrypt.compare(password, admin.password);
@@ -255,6 +272,8 @@ export const adminLoggedIn = async (req, res) => {
     });
   }
 };
+
+
 // OTP Verification and Login
 export const adminOTPVerify = async (req, res) => {
   try {
@@ -327,6 +346,8 @@ export const adminOTPVerify = async (req, res) => {
     });
   }
 };
+
+
 // Logout Admin
 export const logoutAdmin = async (req, res) => {
   try {
@@ -345,6 +366,8 @@ export const logoutAdmin = async (req, res) => {
     });
   }
 };
+
+
 // Forget Password (Send OTP) 
 export const forgetPassword = async (req, res) => {
   try {
