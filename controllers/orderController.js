@@ -146,12 +146,17 @@ export const createOrder = async (req, res) => {
     /* ======================================================
        3️⃣ REMOVE ONLY CHECKED-OUT ITEMS
     ====================================================== */
+    // After creating the order
+
     if (Array.isArray(selectedCartItemIds) && selectedCartItemIds.length > 0) {
       cart.items = cart.items.filter(
-        i => !selectedCartItemIds.includes(i._id.toString())
+        item => !selectedCartItemIds.includes(item._id.toString())
       );
+      cart.markModified("items"); // ensures Mongoose notices array change
       await cart.save();
     }
+
+    
 
 
     res.status(201).json({
