@@ -29,44 +29,8 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    /* ======================================================
-       1️⃣ DIRECT ITEMS (BUY NOW)
-    ====================================================== */
-    if (items && Array.isArray(items) && items.length > 0) {
-      let totalAmount = 0;
-
-      const orderItems = items.map((item, index) => {
-        if (!item.productId || item.quantity == null || item.price == null) {
-          throw new Error(`Item ${index} missing required fields`);
-        }
-
-        totalAmount += Number(item.price) * Number(item.quantity);
-
-        return {
-          productId: item.productId,
-          quantity: Number(item.quantity),
-          price: Number(item.price),
-          name: item.name || "Unnamed Product",
-          image: item.image || ""
-        };
-      });
-
-      const order = await Order.create({
-        orderId,
-        userId,
-        items: orderItems,
-        totalAmount,
-        shippingAddress,
-        paymentMethod: paymentMethod || "cash_on_delivery"
-      });
-
-      // ❗ DO NOT TOUCH CART IN BUY-NOW
-      return res.status(201).json({
-        success: true,
-        message: "Order created successfully",
-        order
-      });
-    }
+    
+    
 
     /* ======================================================
        2️⃣ CART CHECKOUT (FULL / PARTIAL)
