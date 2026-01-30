@@ -19,9 +19,8 @@ export const createOrder = async (req, res) => {
       shippingAddress,
       paymentMethod,
       items,
-      selectedCartItemIds
     } = req.body;
-
+    const selectedCartItemIds = items.map(item => item.productId);
     if (!shippingAddress) {
       return res.status(400).json({
         success: false,
