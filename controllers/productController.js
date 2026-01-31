@@ -119,6 +119,8 @@ export const getProductById = async (req, res) => {
   }
 };
 
+
+
 export const addProduct = async (req, res) => {
   try {
     const file = req.file;
@@ -128,56 +130,76 @@ export const addProduct = async (req, res) => {
         message: "Product image is required",
       });
     }
-    const imageUrl = `/uploads/products/${file.filename}`;
 
+    const imageUrl = `/uploads/products/${file.filename}`;
     const data = req.body;
 
-    // validate discountPercentage if provided
-    if (data && data.discountPercentage !== undefined) {
-      const disc = Number(data.discountPercentage);
-      if (isNaN(disc) || disc < 0 || disc > 100) {
-        return res.status(400).json({ success: false, message: 'discountPercentage must be a number between 0 and 100' });
-      }
-      data.discountPercentage = disc;
-    }
-
-    // validate productPrice if provided
-    if (data && data.productPrice !== undefined) {
-      const price = Number(data.productPrice);
-      if (isNaN(price) || price < 0) {
-        return res.status(400).json({ success: false, message: 'productPrice must be a non-negative number' });
-      }
-      data.productPrice = price;
-    }
-    if (!data) {
-      res.status(400).json({
+    // Validate required fields
+    if (!data.productName || !data.productPrice) {
+      return res.status(400).json({
         success: false,
-        message: "All fields are required"
+        message: "Product name and price are required",
       });
     }
 
+    // Parse and validate productPrice
+    const price = Number(data.productPrice);
+    if (isNaN(price) || price < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "productPrice must be a non-negative number",
+      });
+    }
+
+    // Parse and validate discountPercentage
+    let discount = 0;
+    if (data.discountPercentage !== undefined) {
+      discount = Number(data.discountPercentage);
+      if (isNaN(discount) || discount < 0 || discount > 100) {
+        return res.status(400).json({
+          success: false,
+          message: "discountPercentage must be between 0 and 100",
+        });
+      }
+    }
+
+    // Helper to clean empty ObjectId fields
+    const cleanObjectId = (val) => {
+      if (!val || val === "") return undefined;
+      return mongoose.Types.ObjectId.isValid(val) ? val : undefined;
+    };
+
     const newProduct = await Products.create({
-      productId: data.productId || "",
-      productName: data.productName,
-      productGeniric: data.productGeniric || "",
-      strength: data.strength || "",
-      dose: data.dose || "",
-      category: data.catagory || data.category || "",
-      subCategory: data.subCategory || "",
-      productImgUrl: imageUrl || "",
-      productDescription: data.productDescription || "",
-      sideEffect: data.sideEffect || "",
-      productPrice: data.productPrice,
-      discountPercentage: data.discountPercentage || 0
+      productId: data.productId || undefined,
+      productName: data.productName.trim(),
+      productGeniric:data.productGeniricName || undefined,
+      productSuplier: data.productSuplier || undefined,
+
+      strength: data.strength || undefined,
+      dose: data.dose || undefined,
+
+      category: cleanObjectId(data.category),
+      subCategory: cleanObjectId(data.subCategory),
+      supplier: cleanObjectId(data.supplier),
+
+      productImgUrl: imageUrl,
+      productDescription: data.productDescription || undefined,
+      sideEffect: data.sideEffect || undefined,
+
+      productPrice: price,
+      discountPercentage: discount,
+      isAvailable: data.isAvailable === "true" || data.isAvailable === true,
     });
-    res.status(201).json({
+
+    return res.status(201).json({
       success: true,
       message: "Product added successfully",
       newProduct,
     });
 
   } catch (error) {
-    res.status(500).json({
+    console.error("Add product error:", error);
+    return res.status(500).json({
       success: false,
       message: "Error adding product",
       error: error.message,
@@ -185,15 +207,19 @@ export const addProduct = async (req, res) => {
   }
 };
 
+
+
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!id) {
-      res.status(400).json({
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
         success: false,
-        message: "Product ID is required"
-      })
+        message: "Valid Product ID is required",
+      });
     }
+
     const data = req.body;
 
     const product = await Products.findById(id);
@@ -204,10 +230,56 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    let updatedFields = { ...data };
+    // Helper: clean ObjectId fields
+    const cleanObjectId = (val) => {
+      if (!val || val === "") return undefined;
+      return mongoose.Types.ObjectId.isValid(val) ? val : undefined;
+    };
 
+    // Build only allowed updated fields
+    const updatedFields = {
+      productName: data.productName?.trim(),
+      productGeniric: data.productGeniricName || undefined,
+      productSuplier: data.productSuplier || undefined,
+      strength: data.strength || undefined,
+      dose: data.dose || undefined,
+
+      category: cleanObjectId(data.category),
+      subCategory: cleanObjectId(data.subCategory),
+      supplier: cleanObjectId(data.supplier),
+
+      productDescription: data.productDescription || undefined,
+      sideEffect: data.sideEffect || undefined,
+
+      isAvailable: data.isAvailable === "true" || data.isAvailable === true,
+    };
+
+    // Price validation (if updating)
+    if (data.productPrice !== undefined) {
+      const price = Number(data.productPrice);
+      if (isNaN(price) || price < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "productPrice must be a non-negative number",
+        });
+      }
+      updatedFields.productPrice = price;
+    }
+
+    // Discount validation (if updating)
+    if (data.discountPercentage !== undefined) {
+      const discount = Number(data.discountPercentage);
+      if (isNaN(discount) || discount < 0 || discount > 100) {
+        return res.status(400).json({
+          success: false,
+          message: "discountPercentage must be between 0 and 100",
+        });
+      }
+      updatedFields.discountPercentage = discount;
+    }
+
+    // Handle image update
     if (req.file) {
-      // Delete old image first
       if (product.productImgUrl) {
         const oldImagePath = path.join(__dirname, "..", product.productImgUrl);
         if (fs.existsSync(oldImagePath)) {
@@ -215,29 +287,37 @@ export const updateProduct = async (req, res) => {
         }
       }
 
-      // Add new image URL
-      updatedFields.productImgUrl = `/uploads/${req.file.filename}`;
+      // Keep same folder structure as addProduct
+      updatedFields.productImgUrl = `/uploads/products/${req.file.filename}`;
     }
+
+    // Remove undefined keys so MongoDB won't overwrite fields with undefined
+    Object.keys(updatedFields).forEach(
+      (key) => updatedFields[key] === undefined && delete updatedFields[key]
+    );
 
     const updatedProduct = await Products.findByIdAndUpdate(
       id,
-      updatedFields,
-      { new: true }
+      { $set: updatedFields },
+      { new: true, runValidators: true }
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Product updated successfully",
       updatedProduct,
     });
+
   } catch (error) {
-    res.status(500).json({
+    console.error("Update product error:", error);
+    return res.status(500).json({
       success: false,
       message: "Error updating product",
       error: error.message,
     });
   }
 };
+
 
 export const deleteProduct = async (req, res) => {
   try {
