@@ -157,16 +157,16 @@ export const addProduct = async (req, res) => {
     }
 
     const newProduct = await Products.create({
-      productId: data.productId,
+      productId: data.productId || "",
       productName: data.productName,
-      productGeniric: data.productGeniric,
-      strength: data.strength,
-      dose: data.dose,
-      category: data.catagory || data.category,
-      subCategory: data.subCategory,
-      productImgUrl: imageUrl,
-      productDescription: data.productDescription,
-      sideEffect: data.sideEffect,
+      productGeniric: data.productGeniric || "",
+      strength: data.strength || "",
+      dose: data.dose || "",
+      category: data.catagory || data.category || "",
+      subCategory: data.subCategory || "",
+      productImgUrl: imageUrl || "",
+      productDescription: data.productDescription || "",
+      sideEffect: data.sideEffect || "",
       productPrice: data.productPrice,
       discountPercentage: data.discountPercentage || 0
     });
