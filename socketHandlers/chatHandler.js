@@ -2,7 +2,7 @@ import Chat from "../models/chatModel.js";
 
 const setupChatHandlers = (io) => {
   io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
+    
 
     // Handle errors
     socket.on("error", (error) => {
@@ -12,23 +12,19 @@ const setupChatHandlers = (io) => {
     // User joins their personal channel
     socket.on("joinUser", (userId) => {
       socket.join(userId);
-      console.log(`User ${userId} joined their personal channel`);
       
       // Also join "admin" channel if user is admin (has _id as numeric or UUID)
       if (userId && userId !== 'admin' && userId !== 'guest' && !userId.startsWith('guest_')) {
         socket.join('admin');
-        console.log(`Admin user joined admin channel`);
       }
     });
 
     // Send direct message to a specific user
     socket.on("sendDirectMessage", async (data) => {
       try {
-        console.log("Received sendDirectMessage:", data);
         const { senderId, receiverId, message, senderType } = data;
         
         if (!senderId || !receiverId) {
-          socket.emit("error", { message: "Sender and receiver IDs are required" });
           return;
         }
 
@@ -47,7 +43,6 @@ const setupChatHandlers = (io) => {
         });
 
         await chatMessage.save();
-        console.log("Message saved with ID:", chatMessage._id);
 
         // Emit to the receiver
         io.to(receiverId).emit("receiveDirectMessage", {
@@ -82,7 +77,6 @@ const setupChatHandlers = (io) => {
           timestamp: chatMessage.timestamp
         });
 
-        console.log(`Message sent from ${senderId} to ${receiverId}`);
       } catch (error) {
         console.error("Error sending message:", error);
         socket.emit("error", { message: "Failed to send message" });
@@ -158,7 +152,6 @@ const setupChatHandlers = (io) => {
           timestamp: chatMessage.timestamp
         });
 
-        console.log(`File message sent from ${senderId} to ${receiverId}`);
       } catch (error) {
         console.error("Error sending file message:", error);
         socket.emit("error", { message: "Failed to send file message" });
@@ -166,7 +159,6 @@ const setupChatHandlers = (io) => {
     });
 
     socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
     });
   });
 };

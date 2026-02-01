@@ -165,7 +165,7 @@ export const getOrderById = async (req, res) => {
 
     const order = await Order.findOne({ orderId: searchId })
       .populate("items.productId", "productName productImgUrl productPrice")
-      .populate("userId", "name email phone");
+      .populate("userId", "name email phone").sort({ createdAt: -1 });
 
     if (!order) {
       return res.status(404).json({
@@ -266,31 +266,21 @@ export const createOrderForCustomer = async (req, res) => {
   try {
     const { userId, items, shippingAddress, paymentMethod } = req.body;
 
-    console.log('=== createOrderForCustomer ===');
-    console.log('userId:', userId);
-    console.log('items:', JSON.stringify(items));
-    console.log('shippingAddress:', JSON.stringify(shippingAddress));
-    console.log('paymentMethod:', paymentMethod);
+    
 
     if (!userId || !items || !items.length || !shippingAddress || !paymentMethod) {
-      console.log('Validation failed: Missing required fields');
       return res.status(400).json({
         success: false,
         message: 'User ID, items, shipping address, and payment method are required'
       });
     }
-
-    console.log('Looking up user:', userId);
     const user = await User.findById(userId);
     if (!user) {
-      console.log('User not found');
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    console.log('User found:', user.username);
-
     const orderItems = [];
     let totalAmount = 0;
 
@@ -310,23 +300,18 @@ export const createOrderForCustomer = async (req, res) => {
       return effective;
     };
 
-    console.log('Processing items...');
     for (const item of items) {
       const { productId, quantity } = item;
-      console.log('Processing item:', { productId, quantity });
 
       const prod = await Products.findById(productId).populate('category').populate('subCategory');
       if (!prod) {
-        console.log('Product not found:', productId);
         return res.status(404).json({
           success: false,
           message: `Product with ID ${productId} not found`
         });
       }
-      console.log('Product found:', prod.productName, 'price:', prod.productPrice);
 
       const price = computeEffectivePrice(prod);
-      console.log('Computed price:', price);
 
       orderItems.push({
         productId,
@@ -339,9 +324,6 @@ export const createOrderForCustomer = async (req, res) => {
       totalAmount += price * quantity;
     }
 
-    console.log('Creating order...');
-    console.log('orderItems:', JSON.stringify(orderItems));
-    console.log('totalAmount:', totalAmount);
 
     const order = new Order({
       orderId: `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
@@ -354,15 +336,12 @@ export const createOrderForCustomer = async (req, res) => {
       paymentStatus: 'completed'
     });
 
-    console.log('Saving order...');
+    
     await order.save();
-    console.log('Order saved successfully:', order.orderId);
 
     const populatedOrder = await Order.findById(order._id)
       .populate('userId', 'name email')
       .populate('items.productId', 'name price');
-
-    console.log('Order populated and ready to return');
 
     res.status(201).json({
       success: true,
