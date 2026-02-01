@@ -98,7 +98,7 @@ export const getProductById = async (req, res) => {
 
     const product = await Products.findById(id)
       .populate("category")
-      .populate("subCategory");
+      .populate("subCategory").populate("supplier");
 
     if (!product) {
       return res.status(404).json({

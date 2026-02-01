@@ -8,6 +8,6 @@ router.post('/upload',userAuthentication,uploads.single('file'),uploadPrescripti
 router.put('/update',userAuthentication,updatePrescription);
 router.delete('/delete/:id',userAuthentication,deletePrescription);
 router.get('/user/:userId', adminAuthentication, getPrescriptionsByUserId);
-// router.get('/get-prescription',userAuthentication,getAllPrescriptions)
+router.get('/get-prescription',userAuthentication,getAllPrescriptions)
 
 export default router;

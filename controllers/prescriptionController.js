@@ -137,7 +137,7 @@ export const getAllPrescriptions = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const prescriptions = await Prescription.find()
-      .populate("userId", "name email") // show user info (optional)
+      .populate("userId", "username email phone")
       .sort({ createdAt: -1 }) // newest first
       .skip(skip)
       .limit(limit);
@@ -186,7 +186,7 @@ export const getPrescriptionById = async (req, res) => {
       return res.status(400).json({ success: false, message: "Prescription ID is required" });
     }
 
-    const prescription = await Prescription.findById(id).populate('userId', 'name email phone profilePicture');
+    const prescription = await Prescription.findById(id).populate('userId', 'username email phone profilePicture');
     
     if (!prescription) {
       return res.status(404).json({ success: false, message: "Prescription not found" });
