@@ -43,7 +43,6 @@ export const registerAdmin = async (req, res) => {
     const token = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "10m" });
     const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
     const adminRUL = process.env.ADMIN_URL;
-    console.log(adminRUL);
     mailVerification(token, superAdminEmail, username, adminRUL);
     admin.token = token;
     await admin.save();

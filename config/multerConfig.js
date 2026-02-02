@@ -1,5 +1,6 @@
 import multer from "multer";
 import path from "path";
+import fs from "fs"; // <-- import fs to check/create folder
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
@@ -10,6 +11,12 @@ const __dirname = dirname(__filename);
 const productStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         const productDir = path.join(__dirname, "../uploads/products");
+
+        
+        if (!fs.existsSync(productDir)) {
+            fs.mkdirSync(productDir, { recursive: true });
+        }
+
         cb(null, productDir);
     },
     filename: (req, file, cb) => {

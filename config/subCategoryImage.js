@@ -1,5 +1,6 @@
 import multer from "multer";
 import path from "path";
+import fs from "fs"; // <-- import fs to check/create folder
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
@@ -10,6 +11,12 @@ const __dirname = dirname(__filename);
 const subCategoryStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const subCategoryDir = path.join(__dirname, "../uploads/subCategory");
+
+    // Create the folder if it doesn't exist (handles missing inner folders too)
+    if (!fs.existsSync(subCategoryDir)) {
+      fs.mkdirSync(subCategoryDir, { recursive: true });
+    }
+
     cb(null, subCategoryDir);
   },
   filename: (req, file, cb) => {
@@ -30,4 +37,3 @@ export const uploadSubCategoryImage = multer({
   storage: subCategoryStorage, 
   fileFilter: subCategoryFileFilter 
 });
-

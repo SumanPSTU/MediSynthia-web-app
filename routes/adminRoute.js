@@ -5,7 +5,7 @@ import express from 'express'
 import { adminAuthentication } from '../middleware/isAuthentication.js';
 import {deletePrescriptionsBeforeDate, getPrescriptionById, updatePrescriptionStatus} from '../controllers/prescriptionController.js'
 import { getAllPrescriptions, deletePrescription } from '../controllers/prescriptionController.js';
-
+import { getCommentsByProduct,updateComment,deleteComment } from '../controllers/commentComtroller.js';
 const router = express.Router()
 
 
@@ -40,10 +40,14 @@ router.get('/admin/:id', adminAuthentication, getAdminById);
 router.patch('/block-admin/:adminId', adminAuthentication, blockAdmin);
 router.patch('/unblock-admin/:adminId', adminAuthentication, unblockAdmin);
 router.get('/admin-stats', adminAuthentication, getAdminStats);
+// comment check as a admin
+router.get("/comment/:productId",adminAuthentication, getCommentsByProduct);
+router.put("/comment/:id",adminAuthentication, updateComment);
+router.delete("/comment/:id", adminAuthentication, deleteComment);
 
-// ================= COMMENTS =================
-router.get('/comment/:productId', adminAuthentication, getCommentsByProductAdmin);
-router.post('/comment/:id/reply', adminAuthentication, replyToComment);
+
+
+
 
 export default router;
 

@@ -165,7 +165,7 @@ export const getOrderById = async (req, res) => {
 
     const order = await Order.findOne({ orderId: searchId })
       .populate("items.productId", "productName productImgUrl productPrice")
-      .populate("userId", "name email phone");
+      .populate("userId", "name email phone").sort({ createdAt: -1 });
 
     if (!order) {
       return res.status(404).json({
@@ -266,31 +266,21 @@ export const createOrderForCustomer = async (req, res) => {
   try {
     const { userId, items, shippingAddress, paymentMethod } = req.body;
 
-    console.log('=== createOrderForCustomer ===');
-    console.log('userId:', userId);
-    console.log('items:', JSON.stringify(items));
-    console.log('shippingAddress:', JSON.stringify(shippingAddress));
-    console.log('paymentMethod:', paymentMethod);
+    
 
     if (!userId || !items || !items.length || !shippingAddress || !paymentMethod) {
-      console.log('Validation failed: Missing required fields');
       return res.status(400).json({
         success: false,
         message: 'User ID, items, shipping address, and payment method are required'
       });
     }
-
-    console.log('Looking up user:', userId);
     const user = await User.findById(userId);
     if (!user) {
-      console.log('User not found');
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    console.log('User found:', user.username);
-
     const orderItems = [];
     let totalAmount = 0;
 
@@ -310,23 +300,18 @@ export const createOrderForCustomer = async (req, res) => {
       return effective;
     };
 
-    console.log('Processing items...');
     for (const item of items) {
       const { productId, quantity } = item;
-      console.log('Processing item:', { productId, quantity });
 
       const prod = await Products.findById(productId).populate('category').populate('subCategory');
       if (!prod) {
-        console.log('Product not found:', productId);
         return res.status(404).json({
           success: false,
           message: `Product with ID ${productId} not found`
         });
       }
-      console.log('Product found:', prod.productName, 'price:', prod.productPrice);
 
       const price = computeEffectivePrice(prod);
-      console.log('Computed price:', price);
 
       orderItems.push({
         productId,
@@ -339,9 +324,6 @@ export const createOrderForCustomer = async (req, res) => {
       totalAmount += price * quantity;
     }
 
-    console.log('Creating order...');
-    console.log('orderItems:', JSON.stringify(orderItems));
-    console.log('totalAmount:', totalAmount);
 
     const order = new Order({
       orderId: `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
@@ -354,15 +336,12 @@ export const createOrderForCustomer = async (req, res) => {
       paymentStatus: 'completed'
     });
 
-    console.log('Saving order...');
+    
     await order.save();
-    console.log('Order saved successfully:', order.orderId);
 
     const populatedOrder = await Order.findById(order._id)
       .populate('userId', 'name email')
       .populate('items.productId', 'name price');
-
-    console.log('Order populated and ready to return');
 
     res.status(201).json({
       success: true,
@@ -585,6 +564,188 @@ export const getOrderStatuses = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching statuses',
+      error: error.message
+    });
+  }
+};
+
+
+export const updateOrderByUser = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user._id; // authenticated user
+    const updates = req.body;
+
+    // Find order belonging to the user
+    const order = await Order.findOne({ orderId, userId }).populate("items.productId");
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found or access denied"
+      });
+    }
+
+    // Allowed fields for user update
+    const allowedFields = ["shippingAddress", "paymentMethod", "items"];
+
+    // Update shippingAddress or paymentMethod
+    if (updates.shippingAddress) order.shippingAddress = updates.shippingAddress;
+    if (updates.paymentMethod) order.paymentMethod = updates.paymentMethod;
+
+    // Update items if provided
+    if (updates.items && Array.isArray(updates.items)) {
+      let totalAmount = 0;
+      const newItems = [];
+
+      for (const item of updates.items) {
+        const product = await Products.findById(item.productId)
+          .populate("category")
+          .populate("subCategory");
+
+        if (!product) {
+          return res.status(404).json({
+            success: false,
+            message: `Product with ID ${item.productId} not found`
+          });
+        }
+
+        // Calculate effective price
+        const price = (() => {
+          const prodDisc = Number(product.discountPercentage) || 0;
+          const subDisc = product.subCategory?.discountPercentage || 0;
+          const catDisc = product.category?.discountPercentage || 0;
+          const applied = prodDisc || subDisc || catDisc;
+          return +(product.productPrice * (1 - applied / 100)).toFixed(2);
+        })();
+
+        newItems.push({
+          productId: product._id,
+          quantity: item.quantity,
+          price,
+          name: product.productName,
+          image: product.productImgUrl || ""
+        });
+
+        totalAmount += price * item.quantity;
+      }
+
+      order.items = newItems;
+      order.totalAmount = totalAmount;
+    }
+
+    await order.save();
+
+    // Optionally populate before sending response
+    const updatedOrder = await Order.findById(order._id)
+      .populate("items.productId", "productName productImgUrl productPrice")
+      .populate("userId", "name email");
+
+    res.status(200).json({
+      success: true,
+      message: "Order updated successfully",
+      order: updatedOrder
+    });
+
+  } catch (error) {
+    console.error("Error updating order:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating order",
+      error: error.message
+    });
+  }
+};
+
+
+export const updateOrderByAdmin = async (req, res) => {
+  try {
+    const { orderId, userId } = req.body; // now both come from body
+    const updates = req.body;
+
+    if (!orderId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "orderId and userId are required in the body"
+      });
+    }
+
+    // Find order belonging to the user
+    const order = await Order.findOne({ orderId, userId }).populate("items.productId");
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found or access denied"
+      });
+    }
+
+    // Allowed fields for user update
+    const allowedFields = ["shippingAddress", "paymentMethod", "items"];
+
+    // Update shippingAddress or paymentMethod
+    if (updates.shippingAddress) order.shippingAddress = updates.shippingAddress;
+    if (updates.paymentMethod) order.paymentMethod = updates.paymentMethod;
+
+    // Update items if provided
+    if (updates.items && Array.isArray(updates.items)) {
+      let totalAmount = 0;
+      const newItems = [];
+
+      for (const item of updates.items) {
+        const product = await Products.findById(item.productId)
+          .populate("category")
+          .populate("subCategory");
+
+        if (!product) {
+          return res.status(404).json({
+            success: false,
+            message: `Product with ID ${item.productId} not found`
+          });
+        }
+
+        // Calculate effective price
+        const price = (() => {
+          const prodDisc = Number(product.discountPercentage) || 0;
+          const subDisc = product.subCategory?.discountPercentage || 0;
+          const catDisc = product.category?.discountPercentage || 0;
+          const applied = prodDisc || subDisc || catDisc;
+          return +(product.productPrice * (1 - applied / 100)).toFixed(2);
+        })();
+
+        newItems.push({
+          productId: product._id,
+          quantity: item.quantity,
+          price,
+          name: product.productName,
+          image: product.productImgUrl || ""
+        });
+
+        totalAmount += price * item.quantity;
+      }
+
+      order.items = newItems;
+      order.totalAmount = totalAmount;
+    }
+
+    await order.save();
+
+    // Optionally populate before sending response
+    const updatedOrder = await Order.findById(order._id)
+      .populate("items.productId", "productName productImgUrl productPrice")
+      .populate("userId", "name email");
+
+    res.status(200).json({
+      success: true,
+      message: "Order updated successfully",
+      order: updatedOrder
+    });
+
+  } catch (error) {
+    console.error("Error updating order:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating order",
       error: error.message
     });
   }

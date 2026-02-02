@@ -8,8 +8,8 @@ import {
     getAllOrders,
     getOrdersByUserId,
     getOrderStatuses,
-    updateOrderItems,
-    updateShippingAddress
+    updateOrderByUser,
+    updateOrderByAdmin
 } from "../controllers/orderController.js";
 
 import { userAuthentication,adminAuthentication } from "../middleware/isAuthentication.js";
@@ -55,5 +55,11 @@ router.get('/getOrderById/:id', adminAuthentication, getOrderById);
 
 // Get order statuses (for admin dropdown)
 router.get('/statuses', adminAuthentication, getOrderStatuses);
+
+
+// update order for user and admin
+router.put('/update-order/:orderId',userAuthentication,updateOrderByUser);
+router.put('/admin/update-order',adminAuthentication,updateOrderByAdmin);
+
 
 export default router;
