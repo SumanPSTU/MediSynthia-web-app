@@ -443,3 +443,94 @@ export const getOrderStatuses = async (req, res) => {
     });
   }
 };
+
+import { Order } from "../models/orderModel.js";
+import { Products } from "../models/productModel.js";
+
+export const updateOrderByUser = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user._id; // authenticated user
+    const updates = req.body;
+
+    // Find order belonging to the user
+    const order = await Order.findOne({ orderId, userId }).populate("items.productId");
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found or access denied"
+      });
+    }
+
+    // Allowed fields for user update
+    const allowedFields = ["shippingAddress", "paymentMethod", "items"];
+
+    // Update shippingAddress or paymentMethod
+    if (updates.shippingAddress) order.shippingAddress = updates.shippingAddress;
+    if (updates.paymentMethod) order.paymentMethod = updates.paymentMethod;
+
+    // Update items if provided
+    if (updates.items && Array.isArray(updates.items)) {
+      let totalAmount = 0;
+      const newItems = [];
+
+      for (const item of updates.items) {
+        const product = await Products.findById(item.productId)
+          .populate("category")
+          .populate("subCategory");
+
+        if (!product) {
+          return res.status(404).json({
+            success: false,
+            message: `Product with ID ${item.productId} not found`
+          });
+        }
+
+        // Calculate effective price
+        const price = (() => {
+          const prodDisc = Number(product.discountPercentage) || 0;
+          const subDisc = product.subCategory?.discountPercentage || 0;
+          const catDisc = product.category?.discountPercentage || 0;
+          const applied = prodDisc || subDisc || catDisc;
+          return +(product.productPrice * (1 - applied / 100)).toFixed(2);
+        })();
+
+        newItems.push({
+          productId: product._id,
+          quantity: item.quantity,
+          price,
+          name: product.productName,
+          image: product.productImgUrl || ""
+        });
+
+        totalAmount += price * item.quantity;
+      }
+
+      order.items = newItems;
+      order.totalAmount = totalAmount;
+    }
+
+    await order.save();
+
+    // Optionally populate before sending response
+    const updatedOrder = await Order.findById(order._id)
+      .populate("items.productId", "productName productImgUrl productPrice")
+      .populate("userId", "name email");
+
+    res.status(200).json({
+      success: true,
+      message: "Order updated successfully",
+      order: updatedOrder
+    });
+
+  } catch (error) {
+    console.error("Error updating order:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating order",
+      error: error.message
+    });
+  }
+};
+
