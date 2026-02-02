@@ -41,6 +41,7 @@ router.patch('/block-admin/:adminId', adminAuthentication, blockAdmin);
 router.patch('/unblock-admin/:adminId', adminAuthentication, unblockAdmin);
 router.get('/admin-stats', adminAuthentication, getAdminStats);
 // comment check as a admin
+router.post("/comment/reply/:commentId",adminAuthentication,replyToComment)
 router.get("/comment/:productId",adminAuthentication, getCommentsByProduct);
 router.put("/comment/:id",adminAuthentication, updateComment);
 router.delete("/comment/:id", adminAuthentication, deleteComment);
