@@ -444,8 +444,6 @@ export const getOrderStatuses = async (req, res) => {
   }
 };
 
-import { Order } from "../models/orderModel.js";
-import { Products } from "../models/productModel.js";
 
 export const updateOrderByUser = async (req, res) => {
   try {
