@@ -1,4 +1,5 @@
 import { adminLoggedIn, adminOTPVerify, blockUser, blockAdmin, changePassword, forgetPassword, getAllAdmins, getAdminById, getAdminStats, getAllUser, logoutAdmin, registerAdmin, resendOtp, searchAdmin, searchUser, unblockUser, unblockAdmin, verification, verifyOtp, resendMailForVerification } from '../controllers/adminController.js';
+import { replyToComment, getCommentsByProductAdmin } from '../controllers/commentComtroller.js';
 
 import express from 'express'
 import { adminAuthentication } from '../middleware/isAuthentication.js';
@@ -40,9 +41,9 @@ router.patch('/block-admin/:adminId', adminAuthentication, blockAdmin);
 router.patch('/unblock-admin/:adminId', adminAuthentication, unblockAdmin);
 router.get('/admin-stats', adminAuthentication, getAdminStats);
 
-//generic
-
-
+// ================= COMMENTS =================
+router.get('/comment/:productId', adminAuthentication, getCommentsByProductAdmin);
+router.post('/comment/:id/reply', adminAuthentication, replyToComment);
 
 export default router;
 

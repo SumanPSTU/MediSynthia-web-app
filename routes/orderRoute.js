@@ -7,7 +7,9 @@ import {
     createOrderForCustomer,
     getAllOrders,
     getOrdersByUserId,
-    getOrderStatuses
+    getOrderStatuses,
+    updateOrderItems,
+    updateShippingAddress
 } from "../controllers/orderController.js";
 
 import { userAuthentication,adminAuthentication } from "../middleware/isAuthentication.js";
@@ -25,6 +27,12 @@ router.route('/orders')
 router.route('/orders/:orderId')
     .get(userAuthentication, getOrderById)
     .put(userAuthentication, cancelOrder);
+
+// Update order items (before shipment)
+router.put('/orders/:orderId/items', userAuthentication, updateOrderItems);
+
+// Update shipping address (before shipment)
+router.put('/orders/:orderId/address', userAuthentication, updateShippingAddress);
 
 // Admin routes
 router.route('/admin/orders/create')

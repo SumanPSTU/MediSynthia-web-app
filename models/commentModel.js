@@ -22,7 +22,11 @@ const commentSchema = new mongoose.Schema(
       type: Number,
       min: 1,
       max: 5,
-      required: true
+    },
+    adminReply: {
+      content: { type: String, minlength: 1, maxlength: 500 },
+      repliedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+      repliedAt: { type: Date }
     },
     isApproved: {
       type: Boolean,
