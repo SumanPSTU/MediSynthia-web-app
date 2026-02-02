@@ -44,7 +44,7 @@ router.get("/comment/:productId",adminAuthentication, getCommentsByProduct);
 router.put("/comment/:id",adminAuthentication, updateComment);
 router.delete("/comment/:id", adminAuthentication, deleteComment);
 
-//generic
+
 
 
 

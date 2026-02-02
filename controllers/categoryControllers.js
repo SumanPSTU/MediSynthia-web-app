@@ -2,13 +2,18 @@ import { Category } from "../models/categoryModels.js";
 import fs from "fs";
 import path from "path";
 
+
 const CATEGORY_DIR = path.join(process.cwd(), "uploads/category");
 
-//  Add category with image
+
 export const addCategory = async (req, res) => {
   try {
     const { name, description } = req.body;
-    const discountPercentage = req.body.discountPercentage !== undefined ? Number(req.body.discountPercentage) : undefined;
+    const discountPercentage =
+      req.body.discountPercentage !== undefined
+        ? Number(req.body.discountPercentage)
+        : 0;
+
     const file = req.file;
 
     if (!name) {
@@ -20,26 +25,41 @@ export const addCategory = async (req, res) => {
       return res.status(400).json({ message: "Category already exists" });
     }
 
-    if (discountPercentage !== undefined) {
-      if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
-        return res.status(400).json({ message: "discountPercentage must be a number between 0 and 100" });
-      }
+    if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
+      return res.status(400).json({
+        message: "discountPercentage must be between 0 and 100",
+      });
     }
 
     const category = new Category({
       name,
       description,
       imageUrl: file ? `/uploads/category/${file.filename}` : null,
-      discountPercentage: discountPercentage || 0
+      discountPercentage,
     });
 
     await category.save();
+    if (discountPercentage > 0) {
+      await Products.updateMany(
+        { category: category._id },
+        { $set: { discountPercentage } }
+      );
+    }
 
-    res.status(201).json({ message: "Category created", category });
+    res.status(201).json({
+      success: true,
+      message: "Category created & product discounts updated",
+      category,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error adding category", error: error.message });
+    console.error(error);
+    res.status(500).json({
+      message: "Error adding category",
+      error: error.message,
+    });
   }
 };
+
 
 //  Get all categories
 export const getCategory = async (req, res) => {
@@ -73,15 +93,15 @@ export const searchCategory = async (req, res) => {
       ]
     }).limit(20);
 
-    if(categories.length === 0){
+    if (categories.length === 0) {
       return res.status(404).json({
-        success:false,
-        message:"Category not found"
+        success: false,
+        message: "Category not found"
       });
     }
     res.status(200).json({
-      success:true,
-      message:"Category found!",
+      success: true,
+      message: "Category found!",
       categories
     });
   } catch (error) {
@@ -123,10 +143,20 @@ export const updateCategory = async (req, res) => {
       }
       category.discountPercentage = discountPercentage;
     }
-
     await category.save();
 
-    res.status(200).json({ message: "Category updated", category });
+    if (discountPercentage > 0) {
+      await Products.updateMany(
+        { category: category._id },
+        { $set: { discountPercentage } }
+      );
+    }
+
+    res.status(200).json(
+      {
+        message: "Category updated", category
+      }
+    );
   } catch (error) {
     res.status(500).json({ message: "Error updating category", error: error.message });
   }
@@ -158,58 +188,4 @@ export const deleteCategory = async (req, res) => {
   }
 };
 
-// Update only discountPercentage for category
-export const updateCategoryDiscount = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { discountPercentage } = req.body;
-
-    if (discountPercentage === undefined || discountPercentage === null) {
-      return res.status(400).json({ success: false, message: 'discountPercentage is required' });
-    }
-
-    const disc = Number(discountPercentage);
-    if (isNaN(disc) || disc < 0 || disc > 100) {
-      return res.status(400).json({ success: false, message: 'discountPercentage must be a number between 0 and 100' });
-    }
-
-    const category = await Category.findById(id);
-    if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
-
-    category.discountPercentage = disc;
-    await category.save();
-
-    return res.status(200).json({ success: true, message: 'Category discount updated', category });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: 'Error updating category discount', error: error.message });
-  }
-};
-
-// Remove/reset category discount
-export const removeCategoryDiscount = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const category = await Category.findById(id);
-    if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
-
-    category.discountPercentage = 0;
-    await category.save();
-
-    return res.status(200).json({ success: true, message: 'Category discount removed', category });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: 'Error removing category discount', error: error.message });
-  }
-};
-
-// Get discount details for category
-export const getCategoryDiscount = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const category = await Category.findById(id).select('_id name discountPercentage');
-    if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
-    return res.status(200).json({ success: true, category });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: 'Error fetching category discount', error: error.message });
-  }
-};
 

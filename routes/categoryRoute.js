@@ -12,9 +12,5 @@ router.delete("/:id", adminAuthentication, deleteCategory);
 router.put("/:id", adminAuthentication, uploadCategoryImage.single("image"), updateCategory);
 router.get('/searchcategory',searchCategory);
 
-// discount endpoints
-router.put('/:id/discount', adminAuthentication, updateCategoryDiscount);
-router.delete('/:id/discount', adminAuthentication, removeCategoryDiscount);
-router.get('/:id/discount', getCategoryDiscount);
 
 export default router;
