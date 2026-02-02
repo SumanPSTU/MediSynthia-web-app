@@ -10,10 +10,7 @@ const CATEGORY_DIR = path.join(process.cwd(), "uploads/category");
 export const addCategory = async (req, res) => {
   try {
     const { name, description } = req.body;
-    const discountPercentage =
-      req.body.discountPercentage !== undefined
-        ? Number(req.body.discountPercentage)
-        : 0;
+    const discountPercentage =Number(req.body.discountPercentage);
 
     const file = req.file;
 
@@ -40,7 +37,7 @@ export const addCategory = async (req, res) => {
     });
 
     await category.save();
-    if (discountPercentage > 0) {
+    if (discountPercentage >= 0) {
       // Find products in this category first
       const products = await Products.find({ category: category._id });
 
@@ -124,9 +121,8 @@ export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description } = req.body;
-    const discountPercentage = req.body.discountPercentage !== undefined ? Number(req.body.discountPercentage) : undefined;
+    const discountPercentage =  Number(req.body.discountPercentage);
     const file = req.file;
-
     const category = await Category.findById(id);
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
@@ -151,7 +147,7 @@ export const updateCategory = async (req, res) => {
     }
     await category.save();
 
-    if (discountPercentage > 0) {
+    if (discountPercentage >= 0) {
       // Check if any products exist
       const productsExist = await Products.exists({ category: category._id });
 

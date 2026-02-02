@@ -12,7 +12,7 @@ export const setAdd = async (req, res) => {
       });
     }
 
-    const imageUrl = `/uploads/${file.filename}`;
+    const imageUrl = `/uploads/carousel/${file.filename}`;
 
     const { addId, addDescription, addNumber } = req.body;
 
@@ -99,7 +99,7 @@ export const updateAdd = async (req, res) => {
       if (fs.existsSync(oldImagePath)) {
         fs.unlinkSync(oldImagePath);
       }
-      imageUrl = `/uploads/${file.filename}`;
+      imageUrl = `/uploads/carousel/${file.filename}`;
     }
 
     const { addDescription, addNumber, activeStatus } = req.body;
