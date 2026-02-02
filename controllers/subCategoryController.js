@@ -46,7 +46,7 @@ export const addSubCategory = async (req, res) => {
 
     await subCategory.save();
 
-    if (discountPercentage > 0) {
+    if (discountPercentage >= 0) {
       await Products.updateMany(
         { subCategory: subCategory._id },
         { $set: { discountPercentage } }
