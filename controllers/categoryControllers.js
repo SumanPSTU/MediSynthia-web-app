@@ -1,4 +1,5 @@
 import { Category } from "../models/categoryModels.js";
+import { Products } from "../models/productModel.js"
 import fs from "fs";
 import path from "path";
 
@@ -40,10 +41,15 @@ export const addCategory = async (req, res) => {
 
     await category.save();
     if (discountPercentage > 0) {
-      await Products.updateMany(
-        { category: category._id },
-        { $set: { discountPercentage } }
-      );
+      // Find products in this category first
+      const products = await Products.find({ category: category._id });
+
+      if (products.length > 0) {
+        await products.updateMany(
+          { category: category._id },
+          { $set: { discountPercentage } }
+        );
+      }
     }
 
     res.status(201).json({
@@ -146,17 +152,21 @@ export const updateCategory = async (req, res) => {
     await category.save();
 
     if (discountPercentage > 0) {
-      await Products.updateMany(
-        { category: category._id },
-        { $set: { discountPercentage } }
-      );
+      // Check if any products exist
+      const productsExist = await Products.exists({ category: category._id });
+
+      if (productsExist) {
+        await Products.updateMany(
+          { category: category._id },
+          { $set: { discountPercentage } }
+        );
+        
+      } 
     }
 
-    res.status(200).json(
-      {
-        message: "Category updated", category
-      }
-    );
+    res.status(200).json({
+      message: "Category updated", category
+    });
   } catch (error) {
     res.status(500).json({ message: "Error updating category", error: error.message });
   }
