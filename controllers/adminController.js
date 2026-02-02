@@ -404,7 +404,7 @@ export const forgetPassword = async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     admin.otp = otp;
-    admin.otpExpired = Date.now() + 10 * 60 * 1000; // 10 minutes
+    admin.otpExpired = Date.now() + 3 * 60 * 1000; // 10 minutes
     await admin.save();
 
     await sendOtpMail(email, otp, admin.username);
