@@ -428,6 +428,131 @@ export const getOrdersByUserId = async (req, res) => {
   }
 };
 
+// Update order items (before shipment)
+export const updateOrderItems = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { items } = req.body;
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Order must have at least one item"
+      });
+    }
+
+    const order = await Order.findOne({ orderId });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Check if order is in a state that allows editing
+    if (["Shipped", "Delivered", "Cancelled"].includes(order.orderStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot modify order items for ${order.orderStatus} orders`
+      });
+    }
+
+    // Verify user authorization
+    if (order.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied"
+      });
+    }
+
+    // Calculate new total amount
+    let totalAmount = 0;
+    const updatedItems = items.map(item => {
+      totalAmount += item.price * item.quantity;
+      return {
+        _id: item._id,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        name: item.name,
+        image: item.image
+      };
+    });
+
+    order.items = updatedItems;
+    order.totalAmount = totalAmount;
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Order items updated successfully",
+      order
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating order items",
+      error: error.message
+    });
+  }
+};
+
+// Update shipping address (before shipment)
+export const updateShippingAddress = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { shippingAddress } = req.body;
+
+    if (!shippingAddress || !shippingAddress.street || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zipCode || !shippingAddress.country) {
+      return res.status(400).json({
+        success: false,
+        message: "All address fields are required"
+      });
+    }
+
+    const order = await Order.findOne({ orderId });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Check if order is in a state that allows editing
+    if (["Shipped", "Delivered", "Cancelled"].includes(order.orderStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot modify shipping address for ${order.orderStatus} orders`
+      });
+    }
+
+    // Verify user authorization
+    if (order.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied"
+      });
+    }
+
+    order.shippingAddress = shippingAddress;
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Shipping address updated successfully",
+      order
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating shipping address",
+      error: error.message
+    });
+  }
+};
+
 // Get order statuses - for admin dropdown
 export const getOrderStatuses = async (req, res) => {
   try {

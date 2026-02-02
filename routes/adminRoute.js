@@ -1,4 +1,5 @@
 import { adminLoggedIn, adminOTPVerify, blockUser, blockAdmin, changePassword, forgetPassword, getAllAdmins, getAdminById, getAdminStats, getAllUser, logoutAdmin, registerAdmin, resendOtp, searchAdmin, searchUser, unblockUser, unblockAdmin, verification, verifyOtp, resendMailForVerification } from '../controllers/adminController.js';
+import { replyToComment, getCommentsByProductAdmin } from '../controllers/commentComtroller.js';
 
 import express from 'express'
 import { adminAuthentication } from '../middleware/isAuthentication.js';

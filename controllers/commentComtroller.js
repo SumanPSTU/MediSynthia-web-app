@@ -81,6 +81,32 @@ export const getCommentsByProduct = async (req, res) => {
   }
 };
 
+export const getCommentsByProductAdmin = async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const comments = await Comment.find({
+      productId,
+      isDeleted: false,
+    })
+      .populate("userId", "username email")
+      .populate("adminReply.repliedBy", "username email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: comments.length,
+      data: comments,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch comments",
+      error: error.message,
+    });
+  }
+};
+
 export const updateComment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -141,6 +167,57 @@ export const deleteComment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to delete comment",
+      error: error.message,
+    });
+  }
+};
+
+export const replyToComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+    const adminId = req.user?._id;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Reply content is required",
+      });
+    }
+
+    if (content.length > 500) {
+      return res.status(400).json({
+        success: false,
+        message: "Reply must be 500 characters or less",
+      });
+    }
+
+    const comment = await Comment.findOne({ _id: id, isDeleted: false });
+
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: "Comment not found",
+      });
+    }
+
+    comment.adminReply = {
+      content: content.trim(),
+      repliedBy: adminId,
+      repliedAt: new Date(),
+    };
+
+    await comment.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Reply added successfully",
+      data: comment,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to add reply",
       error: error.message,
     });
   }
