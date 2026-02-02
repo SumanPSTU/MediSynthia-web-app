@@ -1,5 +1,5 @@
 import express from "express";
-import { addCategory, getCategory, deleteCategory, updateCategory, updateCategoryDiscount, removeCategoryDiscount, getCategoryDiscount, searchCategory } from "../controllers/categoryControllers.js";
+import { addCategory, getCategory, deleteCategory, updateCategory,  searchCategory } from "../controllers/categoryControllers.js";
 import { uploadCategoryImage } from "../config/categoryImage.js";
 import { adminAuthentication } from "../middleware/isAuthentication.js";
 
