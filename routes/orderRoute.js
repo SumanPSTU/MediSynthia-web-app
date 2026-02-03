@@ -9,7 +9,9 @@ import {
     getOrdersByUserId,
     getOrderStatuses,
     updateOrderByUser,
-    updateOrderByAdmin
+    updateOrderByAdmin,
+    updateOrderItems,
+    updateShippingAddress
 } from "../controllers/orderController.js";
 
 import { userAuthentication,adminAuthentication } from "../middleware/isAuthentication.js";

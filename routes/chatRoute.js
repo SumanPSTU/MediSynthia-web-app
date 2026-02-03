@@ -2,6 +2,7 @@ import express from 'express';
 import { adminAuthentication } from '../middleware/isAuthentication.js';
 import { userAuthentication } from '../middleware/isAuthentication.js';
 import Chat from '../models/chatModel.js';
+import { Admin } from '../models/adminModel.js';
 import { User } from '../models/userModel.js';
 const router = express.Router();
 
@@ -23,13 +24,17 @@ router.get('/users', adminAuthentication, async (req, res) => {
     const chatsFromAdmin = await Chat.find({ senderId: adminId }).distinct('receiverId');
     
     // Combine and deduplicate, and filter out non-ObjectId values (strings like 'admin', guest IDs, etc)
-    const uniqueUserIds = [...new Set([...chats, ...chatsFromAdmin])].filter(id => {
+    const allIds = [...new Set([...chats, ...chatsFromAdmin])];
+    const uniqueUserIds = allIds.filter(id => {
       // Keep only valid MongoDB ObjectIds (24 hex characters)
-      return typeof id === 'object' || (typeof id === 'string' && /^[0-9a-f]{24}$/i.test(id));
+      const idStr = typeof id === 'object' ? id.toString() : id;
+      return typeof idStr === 'string' && /^[0-9a-f]{24}$/i.test(idStr);
     });
     
-    // Get user details
-    const users = await User.find({ _id: { $in: uniqueUserIds } }).select('-password');
+    // Get user details - only query if we have valid IDs
+    const users = uniqueUserIds.length > 0 
+      ? await User.find({ _id: { $in: uniqueUserIds } }).select('-password')
+      : [];
     
     // Get last message and unread count for each user
     const usersWithInfo = await Promise.all(users.map(async (user) => {
@@ -68,6 +73,70 @@ router.get('/users', adminAuthentication, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching chat users:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// User: Get messages with admin (MUST be before /messages/:userId to prevent route collision)
+router.get('/messages/admin', userAuthentication, async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    const userId = req.user._id.toString();
+    
+    let adminIdStrings = [];
+    try {
+      const adminIds = await Admin.find({}).select('_id');
+      adminIdStrings = adminIds.map((a) => a._id.toString());
+    } catch (e) {
+      adminIdStrings = [];
+    }
+
+    // Find messages between user and admin (checking both legacy 'admin' and actual admin IDs)
+    const adminIdFilter = adminIdStrings.length > 0
+      ? [
+          { senderId: userId, receiverId: { $in: adminIdStrings } },
+          { senderId: { $in: adminIdStrings }, receiverId: userId }
+        ]
+      : [];
+
+    const messages = await Chat.find({
+      $or: [
+        { senderId: userId, receiverId: 'admin' },
+        { senderId: 'admin', receiverId: userId },
+        ...adminIdFilter
+      ]
+    }).sort({ timestamp: 1 });
+    
+    // Mark messages from admin as read only if markAsRead query param is true
+    const shouldMarkAsRead = req.query.markAsRead === 'true';
+    if (shouldMarkAsRead) {
+      await Chat.updateMany(
+        {
+          $or: [
+            { senderId: 'admin', receiverId: userId },
+            { senderId: { $in: adminIdStrings }, receiverId: userId }
+          ],
+          read: false
+        },
+        { $set: { read: true, readAt: new Date() } }
+      );
+    }
+    
+    res.status(200).json({
+      success: true,
+      messages
+    });
+  } catch (error) {
+    console.error('Error fetching messages:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -173,32 +242,6 @@ router.get('/unread-count', adminAuthentication, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching unread count:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-// User: Get messages with admin
-router.get('/messages/admin', userAuthentication, async (req, res) => {
-  try {
-    const userId = req.user._id.toString();
-    
-    // Find messages between user and admin (checking both 'admin' and actual admin ID)
-    const messages = await Chat.find({
-      $or: [
-        { senderId: userId, receiverId: 'admin' },
-        { senderId: 'admin', receiverId: userId }
-      ]
-    }).sort({ timestamp: 1 });
-    
-    res.status(200).json({
-      success: true,
-      messages
-    });
-  } catch (error) {
-    console.error('Error fetching messages:', error);
     res.status(500).json({
       success: false,
       message: error.message
