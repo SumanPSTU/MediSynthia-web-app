@@ -27,15 +27,28 @@ import setupChatHandlers from "./socketHandlers/chatHandler.js";
 
 dotenv.config();
 const PORT = process.env.PORT || 3000;
-const crosOrigin = [process.env.FRONT_URL, process.env.ADMIN_URL];
+
+// Parse CORS origins from environment variables
+const corsOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',').map(url => url.trim())
+  : [];
+
 // Express app
 const app = express();
 app.use('/upload', uploadRoute);
-console.log("CORS Origins:", crosOrigin);
+console.log("CORS Origins:", corsOrigins);
 
 // CORS Configuration with all HTTP methods
 const corsOptions = {
-  origin: crosOrigin,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || corsOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS request blocked from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS policy'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
