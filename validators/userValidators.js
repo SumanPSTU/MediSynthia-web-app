@@ -1,7 +1,7 @@
 import yup from 'yup'
 export const userSchema = yup.object({
     username: yup.string().trim().min(5, "username must be at least 5 characters!").required(),
-    email: yup.string().email("The email is not valied!").required(),
+    email: yup.string().email("The email is not valid!").required(),
     password: yup.string().min(6, "password must be at least 6 characters").required()
 
 })

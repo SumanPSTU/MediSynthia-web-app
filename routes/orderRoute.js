@@ -11,7 +11,8 @@ import {
     updateOrderByUser,
     updateOrderByAdmin,
     updateOrderItems,
-    updateShippingAddress
+    updateShippingAddress,
+    deleteOrder
 } from "../controllers/orderController.js";
 
 import { userAuthentication,adminAuthentication } from "../middleware/isAuthentication.js";
@@ -42,6 +43,9 @@ router.route('/admin/orders/create')
 
 // Update order status (separate route)
 router.put('/admin/orders/:orderId', adminAuthentication, updateOrderStatus);
+
+// Delete order (admin only)
+router.delete('/admin/orders/:orderId', adminAuthentication, deleteOrder);
 
 // Get order by ID for admin
 router.get('/admin/orders/:orderId', adminAuthentication, getOrderById);

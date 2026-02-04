@@ -3,15 +3,19 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    phone:{type:String,required:true},
+    password: { type: String, default: null }, // null for Google auth users
+    phone:{ type: String, default: null }, // optional for Google auth users
     isVerified: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
     isLoggedIn: { type: Boolean, default: false },
     token: { type: String, default: null },
     otp: { type: String, default: null },
     otpExpired: { type: Date, default: null },
-    phone:{type:String,required:true},
+    
+    // Google Authentication
+    googleId: { type: String, default: null }, // Store Google user ID
+    photoURL: { type: String, default: null }, // Store Google profile picture
+    authMethod: { type: String, enum: ['email', 'google'], default: 'email' },
 
     address: {
         street: { type: String, default: "" },

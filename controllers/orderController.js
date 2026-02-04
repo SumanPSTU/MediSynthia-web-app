@@ -97,10 +97,17 @@ export const createOrder = async (req, res) => {
       totalAmount += price * item.quantity;
     }
 
+    // Add delivery charge
+    const deliveryCharge = 120;
+    const subtotal = totalAmount;
+    totalAmount += deliveryCharge;
+
     const order = await Order.create({
       orderId: orderId || `ORD${Date.now()}`,
       userId,
       items: orderItems,
+      subtotal,
+      deliveryCharge,
       totalAmount,
       shippingAddress,
       paymentMethod
@@ -324,11 +331,17 @@ export const createOrderForCustomer = async (req, res) => {
       totalAmount += price * quantity;
     }
 
+    // Add delivery charge
+    const deliveryCharge = 120;
+    const subtotal = totalAmount;
+    totalAmount += deliveryCharge;
 
     const order = new Order({
       orderId: `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
       userId,
       items: orderItems,
+      subtotal,
+      deliveryCharge,
       totalAmount,
       shippingAddress,
       paymentMethod,
@@ -746,6 +759,35 @@ export const updateOrderByAdmin = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error updating order",
+      error: error.message
+    });
+  }
+};
+
+// Delete order (admin only)
+export const deleteOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findOne({ orderId });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    await Order.deleteOne({ orderId });
+
+    res.status(200).json({
+      success: true,
+      message: "Order deleted successfully"
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error deleting order",
       error: error.message
     });
   }

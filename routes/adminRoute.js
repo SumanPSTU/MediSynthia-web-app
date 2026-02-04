@@ -1,20 +1,26 @@
-import { adminLoggedIn, adminOTPVerify, blockUser, blockAdmin, changePassword, forgetPassword, getAllAdmins, getAdminById, getAdminStats, getAllUser, logoutAdmin, registerAdmin, resendOtp, searchAdmin, searchUser, unblockUser, unblockAdmin, verification, verifyOtp, resendMailForVerification } from '../controllers/adminController.js';
+import { adminLoggedIn, adminOTPVerify, blockUser, blockAdmin, changePassword, forgetPassword, getAllAdmins, getAdminById, getAdminStats, getAllUser, logoutAdmin, registerAdmin, resendOtp, searchAdmin, searchUser, unblockUser, unblockAdmin, verification, verifyOtp, resendMailForVerification, refreshAdminToken } from '../controllers/adminController.js';
 import { replyToComment, getCommentsByProductAdmin } from '../controllers/commentComtroller.js';
 
 import express from 'express'
 import { adminAuthentication } from '../middleware/isAuthentication.js';
+import { createRateLimiter, createEmailRateLimiter } from '../middleware/rateLimiter.js';
 import {deletePrescriptionsBeforeDate, getPrescriptionById, updatePrescriptionStatus} from '../controllers/prescriptionController.js'
 import { getAllPrescriptions, deletePrescription } from '../controllers/prescriptionController.js';
 import { getCommentsByProduct,updateComment,deleteComment } from '../controllers/commentComtroller.js';
 const router = express.Router()
 
+// Rate limiters
+const registerLimiter = createRateLimiter(5, 15 * 60 * 1000); // 5 attempts per 15 minutes
+const loginLimiter = createRateLimiter(3, 60 * 1000); // 3 attempts per 60 seconds
+const emailLimiter = createEmailRateLimiter(3, 60 * 60 * 1000); // 3 attempts per hour
 
-router.post('/register', registerAdmin);
+router.post('/register', registerLimiter, registerAdmin);
 router.post('/verify', verification);
-router.post('/resend-emain/:email',resendMailForVerification)
-router.post('/login', adminLoggedIn);
-router.post('/verify/:email', adminOTPVerify);
-router.post('/resend-otp/:email', resendOtp);
+router.post('/resend-email/:email', emailLimiter, resendMailForVerification)
+router.post('/login', loginLimiter, adminLoggedIn);
+router.post('/refresh-token', refreshAdminToken);
+router.post('/verify/:email', emailLimiter, adminOTPVerify);
+router.post('/resend-otp/:email', emailLimiter, resendOtp);
 router.get('/alluser', adminAuthentication, getAllUser);
 router.get('/search-user',searchUser)
 router.patch('/block-user/:userId', adminAuthentication, blockUser);

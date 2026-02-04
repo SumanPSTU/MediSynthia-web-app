@@ -29,7 +29,7 @@ const addressSchema = new mongoose.Schema({
   street: { type: String, required: true },
   city: { type: String, required: true },
   state: { type: String, required: true },
-  zipCode: { type: String, required: true },
+  zipCode: { type: String, required: false, default: "" },
   country: { type: String, required: true }
 });
 
@@ -45,6 +45,14 @@ const orderSchema = new mongoose.Schema({
     required: true
   },
   items: [orderItemSchema],
+  subtotal: {
+    type: Number,
+    required: true
+  },
+  deliveryCharge: {
+    type: Number,
+    default: 120
+  },
   totalAmount: {
     type: Number,
     required: true

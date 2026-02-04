@@ -6,21 +6,58 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mailVerification from '../email/mailVerification.js';
 import { sendOtpMail } from '../email/sendOtpMail.js';
+import { validatePasswordStrength } from '../utils/passwordUtils.js';
+import { sanitizeEmail, sanitizeUsername, sanitizePhone, isValidEmail, isValidUsername, isValidPhone } from '../utils/inputSanitization.js';
+import { blacklistToken } from '../utils/tokenBlacklist.js';
 import dotenv from 'dotenv'
 dotenv.config();
 
 // Register Admin
 export const registerAdmin = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    const phone = "xxxxx";
+    let { username, email, password, phone } = req.body;
 
-
-
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !phone) {
       return res.status(400).json({
         success: false,
         message: "All fields are required!",
+      });
+    }
+
+    // Sanitize inputs
+    email = sanitizeEmail(email);
+    username = sanitizeUsername(username);
+    phone = sanitizePhone(phone);
+
+    // Validate inputs
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format"
+      });
+    }
+
+    if (!isValidUsername(username)) {
+      return res.status(400).json({
+        success: false,
+        message: "Username must be 3-30 characters (alphanumeric, underscore, hyphen only)"
+      });
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid phone number format"
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Password does not meet security requirements",
+        errors: passwordValidation.errors
       });
     }
 
@@ -98,7 +135,7 @@ export const verification = async (req, res) => {
     if (admin.isVerified) {
       return res.status(200).json({
         success: false,
-        messege: "Admin already verified!"
+        message: "Admin already verified!"
       })
     }
     admin.token = null;
@@ -234,7 +271,7 @@ export const adminLoggedIn = async (req, res) => {
     if (admin.isBlocked) {
       return res.status(403).json({
         success: false,
-        messege: "Your account is blocked!"
+        message: "Your account is blocked!"
       })
     }
 
@@ -323,7 +360,7 @@ export const adminOTPVerify = async (req, res) => {
     await Session.create({ userId: admin._id });
 
     const accessToken = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "10d" });
-    const refreshToken = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "30d" });
+    const refreshToken = jwt.sign({ id: admin._id }, process.env.REFRESH_SECRET_KEY || process.env.SECRET_KEY, { expiresIn: "30d" });
 
     admin.isLoggedIn = true;
     await admin.save();
@@ -348,12 +385,18 @@ export const adminOTPVerify = async (req, res) => {
 export const logoutAdmin = async (req, res) => {
   try {
     const userId = req.admin;
+    const token = req.headers.authorization?.split(" ")[1];
 
     if (!userId) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized"
       });
+    }
+
+    // Blacklist the access token
+    if (token) {
+      await blacklistToken(token, 'access', null, userId);
     }
 
     await Session.deleteMany({ userId });
@@ -503,6 +546,16 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Password does not match"
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Password does not meet security requirements",
+        errors: passwordValidation.errors
       });
     }
 
@@ -858,6 +911,50 @@ export const getAdminStats = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message
+    });
+  }
+};
+
+export const refreshAdminToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Refresh token is required"
+      });
+    }
+
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET_KEY || process.env.SECRET_KEY);
+      const admin = await Admin.findById(decoded.id);
+
+      if (!admin) {
+        return res.status(401).json({
+          success: false,
+          message: "Admin not found"
+        });
+      }
+
+      const newAccessToken = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "10d" });
+
+      return res.status(200).json({
+        success: true,
+        message: "Token refreshed successfully",
+        accessToken: newAccessToken
+      });
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired refresh token"
+      });
+    }
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
     });
   }
 };

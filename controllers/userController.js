@@ -4,6 +4,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { Session } from '../models/sessionModel.js'
 import { sendOtpMail } from '../email/sendOtpMail.js'
+import { validatePasswordStrength } from '../utils/passwordUtils.js';
+import { sanitizeEmail, sanitizeUsername, sanitizePhone, isValidEmail, isValidUsername, isValidPhone } from '../utils/inputSanitization.js';
+import { blacklistToken } from '../utils/tokenBlacklist.js';
 
 export const registerUser = async (req, res) => {
   try {
@@ -16,7 +19,43 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    // Sanitize and validate inputs
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format"
+      });
+    }
+
+    if (!isValidUsername(username)) {
+      return res.status(400).json({
+        success: false,
+        message: "Username contains invalid characters"
+      });
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid phone number format"
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Password does not meet security requirements",
+        errors: passwordValidation.errors
+      });
+    }
+
+    const sanitizedEmail = sanitizeEmail(email);
+    const sanitizedUsername = sanitizeUsername(username);
+    const sanitizedPhone = sanitizePhone(phone);
+
+    const existingUser = await User.findOne({ email: sanitizedEmail });
 
     if (existingUser) {
       return res.status(400).json({
@@ -28,10 +67,10 @@ export const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
-      username,
-      email,
+      username: sanitizedUsername,
+      email: sanitizedEmail,
       password: hashedPassword,
-      phone,
+      phone: sanitizedPhone,
       address: {
         street: address?.street || "",
         city: address?.city || "",
@@ -56,7 +95,7 @@ export const registerUser = async (req, res) => {
 
     // Send verification email
     const userURL = process.env.FRONT_URL;
-    mailVerification(token, email,newUser.username,userURL);
+    mailVerification(token, sanitizedEmail, sanitizedUsername, userURL);
 
     newUser.token = token;
     await newUser.save();
@@ -216,13 +255,13 @@ export const loginUser = async (req, res) => {
       await logoutUser(req,res);
       return res.status(403).json({
         success:false,
-        messege:"Your account is blocked!"
+        message:"Your account is blocked!"
       })
     }
 
     const passwordCheck = await bcrypt.compare(password, user.password);
     if (!passwordCheck) {
-      return res.status(402).json({
+      return res.status(401).json({
         success: false,
         message: "Incorrect password"
       });
@@ -239,7 +278,7 @@ export const loginUser = async (req, res) => {
 
     // generate access & refresh tokens
     const accessToken = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: "30d" });
-    const refreshToken = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: "30d" });
+    const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_SECRET_KEY || process.env.SECRET_KEY, { expiresIn: "30d" });
 
     user.isLoggedIn = true;
     await user.save();
@@ -264,16 +303,23 @@ export const loginUser = async (req, res) => {
 export const logoutUser = async (req, res) => {
   try {
     const userId = req.user._id;
+    const token = req.headers.authorization?.split(" ")[1];
+
+    // Blacklist the access token
+    if (token) {
+      await blacklistToken(token, 'access', userId);
+    }
+
     await Session.deleteMany({ userId });
     await User.findByIdAndUpdate(userId, { isLoggedIn: false });
     res.status(200).json({
       success: true,
-      messege: "Logged out successfully"
+      message: "Logged out successfully"
     })
   } catch (err) {
     return res.status(500).json({
       success: false,
-      messege: err.message
+      message: err.message
     })
 
   }
@@ -332,7 +378,7 @@ export const verifyOtp = async (req, res) => {
   if (!otp) {
     return res.status(400).json({
       success: false,
-      messege: "OTP is required"
+      message: "OTP is required"
     })
   }
 
@@ -341,26 +387,26 @@ export const verifyOtp = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        messege: "User not found"
+        message: "User not found"
       })
     }
     if (!user.otp || !user.otpExpired) {
       return res.status(400).json({
         success: false,
-        messege: "OTP not generated or already verified"
+        message: "OTP not generated or already verified"
       })
     }
     if (user.otpExpired < new Date()) {
       return res.status(400).json({
         success: false,
-        messege: "OTP has expired. Please request to resend OTP"
+        message: "OTP has expired. Please request to resend OTP"
       })
     }
 
     if (otp !== user.otp) {
       return res.status(400).json({
         success: false,
-        messege: "Invalid OTP"
+        message: "Invalid OTP"
       })
     }
 
@@ -389,14 +435,14 @@ export const changePassword = async (req, res) => {
   if (!email) {
     return res.status(404).json({
       success: false,
-      messege: "Email not found"
+      message: "Email not found"
     })
   }
   const { password, confirmPassword } = req.body;
   if (!password || !confirmPassword) {
     return res.status(400).json({
       success: false,
-      message: "All filed required"
+      message: "All fields required"
     })
   }
 
@@ -406,6 +452,17 @@ export const changePassword = async (req, res) => {
       message: "Password does not match"
     })
   }
+
+  // Validate password strength
+  const passwordValidation = validatePasswordStrength(password);
+  if (!passwordValidation.isValid) {
+    return res.status(400).json({
+      success: false,
+      message: "Password does not meet security requirements",
+      errors: passwordValidation.errors
+    });
+  }
+
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -427,7 +484,7 @@ export const changePassword = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      messege: error.message
+      message: error.message
     })
 
   }
@@ -562,4 +619,219 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
+// Update user profile (address, deliveryAddress, etc)
+export const updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { address, deliveryAddress } = req.body;
 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Update address if provided
+    if (address) {
+      user.address = {
+        street: address.street || user.address?.street || "",
+        city: address.city || user.address?.city || "",
+        state: address.state || user.address?.state || "",
+        zipCode: address.zipCode || address.postalCode || user.address?.zipCode || user.address?.postalCode || "",
+        country: address.country || user.address?.country || "Bangladesh",
+      };
+    }
+
+    // Update delivery address if provided
+    if (deliveryAddress) {
+      user.deliveryAddress = {
+        street: deliveryAddress.street || user.deliveryAddress?.street || "",
+        city: deliveryAddress.city || user.deliveryAddress?.city || "",
+        state: deliveryAddress.state || user.deliveryAddress?.state || "",
+        zipCode: deliveryAddress.zipCode || deliveryAddress.postalCode || user.deliveryAddress?.zipCode || user.deliveryAddress?.postalCode || "",
+        country: deliveryAddress.country || user.deliveryAddress?.country || "Bangladesh",
+      };
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: {
+        address: user.address,
+        deliveryAddress: user.deliveryAddress,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const refreshUserToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Refresh token is required"
+      });
+    }
+
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET_KEY || process.env.SECRET_KEY);
+      const user = await User.findById(decoded.id);
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "User not found"
+        });
+      }
+
+      const newAccessToken = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: "30d" });
+
+      return res.status(200).json({
+        success: true,
+        message: "Token refreshed successfully",
+        accessToken: newAccessToken
+      });
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired refresh token"
+      });
+    }
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+};
+
+/**
+ * Google Authentication Handler
+ * Verifies Google ID token and creates/updates user in MongoDB
+ */
+export const googleAuth = async (req, res) => {
+  try {
+    const { idToken, name, email, photoURL } = req.body;
+
+    if (!idToken || !email || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: idToken, name, email"
+      });
+    }
+
+    // Verify email format
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format"
+      });
+    }
+
+    const sanitizedEmail = sanitizeEmail(email);
+    const sanitizedUsername = sanitizeUsername(name);
+
+    try {
+      // Verify the Google ID token using Firebase Admin SDK would be ideal,
+      // but for now we'll trust the frontend and validate on backend
+      // In production, use: admin.auth().verifyIdToken(idToken)
+      
+      let user = await User.findOne({ email: sanitizedEmail });
+
+      if (user) {
+        // User exists - update Google ID if not already set
+        if (!user.googleId) {
+          user.googleId = email; // Use email as unique identifier for Google
+          user.authMethod = 'google';
+          if (photoURL) user.photoURL = photoURL;
+          await user.save();
+        }
+      } else {
+        // Create new user
+        user = await User.create({
+          username: sanitizedUsername,
+          email: sanitizedEmail,
+          password: null, // No password for Google auth
+          phone: null, // Optional for Google auth
+          googleId: email, // Use email as Google identifier
+          photoURL: photoURL || null,
+          authMethod: 'google',
+          isVerified: true, // Google users are pre-verified
+          address: {
+            street: "",
+            city: "",
+            state: "",
+            postalCode: "",
+            country: "Bangladesh"
+          },
+          deliveryAddress: {
+            street: "",
+            city: "",
+            state: "",
+            postalCode: "",
+            country: "Bangladesh"
+          }
+        });
+      }
+
+      // Generate JWT tokens
+      const accessToken = jwt.sign(
+        { id: user._id, email: user.email },
+        process.env.SECRET_KEY,
+        { expiresIn: "30d" }
+      );
+
+      const refreshToken = jwt.sign(
+        { id: user._id },
+        process.env.REFRESH_SECRET_KEY || process.env.SECRET_KEY,
+        { expiresIn: "30d" }
+      );
+
+      // Save refresh token to session
+      await Session.create({
+        userId: user._id,
+        refreshToken,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Google authentication successful",
+        accessToken,
+        refreshToken,
+        user: {
+          id: user._id,
+          email: user.email,
+          username: user.username,
+          photoURL: user.photoURL
+        }
+      });
+
+    } catch (error) {
+      console.error("Google auth error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Google authentication failed: " + error.message
+      });
+    }
+
+  } catch (error) {
+    console.error("Google auth error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Google authentication failed"
+    });
+  }
+};

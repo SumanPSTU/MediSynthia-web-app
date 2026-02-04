@@ -12,15 +12,30 @@ export const setAdd = async (req, res) => {
       });
     }
 
-    const imageUrl = `/uploads/carousel/${file.filename}`;
-
     const { addId, addDescription, addNumber } = req.body;
+
+    // Validate required fields
+    if (!addId) {
+      return res.status(400).json({
+        success: false,
+        message: "Banner ID (addId) is required",
+      });
+    }
+
+    if (!addNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Banner number (addNumber) is required",
+      });
+    }
+
+    const imageUrl = `/uploads/carousel/${file.filename}`;
 
     const newAdd = await BannerAdd.create({
       addId,
       addDescription,
       addImgUrl: imageUrl,
-      addNumber: addNumber
+      addNumber
     });
 
     res.status(201).json({
@@ -95,20 +110,45 @@ export const updateAdd = async (req, res) => {
     }
 
     if (file) {
-      const oldImagePath = path.join(process.cwd(), existingAdd.addImgUrl); // `/uploads/filename`
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
+      // Delete old image if it exists
+      if (existingAdd.addImgUrl) {
+        try {
+          // Extract filename from URL path (remove leading /)
+          const oldImagePath = path.join(process.cwd(), existingAdd.addImgUrl);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+          }
+        } catch (err) {
+          console.error("Error deleting old image:", err);
+          // Don't fail the update if old image deletion fails
+        }
       }
       imageUrl = `/uploads/carousel/${file.filename}`;
     }
 
-    const { addDescription, addNumber, activeStatus } = req.body;
+    const { addId, addDescription, addNumber, activeStatus } = req.body;
+
+    // Validate required fields if they're being updated
+    if (addNumber !== undefined && !addNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Banner number (addNumber) cannot be empty"
+      });
+    }
+
+    if (addId !== undefined && !addId) {
+      return res.status(400).json({
+        success: false,
+        message: "Banner ID (addId) cannot be empty"
+      });
+    }
 
     // Update document
     const updatedAdd = await BannerAdd.findByIdAndUpdate(
       id,
       {
-        ...(addDescription && { addDescription }),
+        ...(addId && { addId }),
+        ...(addDescription !== undefined && { addDescription }),
         ...(addNumber && { addNumber }),
         ...(typeof activeStatus !== "undefined" && { activeStatus }),
         ...(imageUrl && { addImgUrl: imageUrl })
@@ -142,6 +182,19 @@ export const deleteAdd = async (req, res) => {
         success: false,
         message: "Banner not found"
       });
+    }
+
+    // Delete the image file from disk
+    if (deletedAdd.addImgUrl) {
+      try {
+        const imagePath = path.join(process.cwd(), deletedAdd.addImgUrl);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
+      } catch (err) {
+        console.error("Error deleting image file:", err);
+        // Don't fail the deletion if image cleanup fails
+      }
     }
 
     res.status(200).json({

@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { User } from '../models/userModel.js';
 import { Admin } from '../models/adminModel.js';
+import { isTokenBlacklisted } from '../utils/tokenBlacklist.js';
 import { logoutUser } from '../controllers/userController.js';
 import { logoutAdmin } from '../controllers/adminController.js';
 
@@ -18,6 +19,15 @@ export const userAuthentication = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
+
+    // Check if token is blacklisted
+    const blacklisted = await isTokenBlacklisted(token);
+    if (blacklisted) {
+      return res.status(401).json({
+        success: false,
+        message: "Access token has been revoked. Please login again."
+      });
+    }
 
     let decoded;
     try {
@@ -47,7 +57,7 @@ export const userAuthentication = async (req, res, next) => {
       await logoutUser(req,res);
       return res.status(403).json({
         success:false,
-        messege:"Your account is blocked!"
+        message:"Your account is blocked!"
       })
     }
     req.user = user;
@@ -73,6 +83,15 @@ export const adminAuthentication = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
+
+    // Check if token is blacklisted
+    const blacklisted = await isTokenBlacklisted(token);
+    if (blacklisted) {
+      return res.status(401).json({
+        success: false,
+        message: "Access token has been revoked. Please login again."
+      });
+    }
 
     let decoded;
     try {
@@ -106,7 +125,7 @@ export const adminAuthentication = async (req, res, next) => {
     if(admin.isBlocked){
       return res.status(403).json({
         success:false,
-        messege:"Your account is blocked!"
+        message:"Your account is blocked!"
       })
     }
 
