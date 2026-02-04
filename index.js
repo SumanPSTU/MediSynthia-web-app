@@ -32,10 +32,18 @@ const crosOrigin = [process.env.FRONT_URL, process.env.ADMIN_URL];
 const app = express();
 app.use('/upload', uploadRoute);
 console.log("CORS Origins:", crosOrigin);
-app.use(cors(
-  {origin:crosOrigin}
-  
-));
+
+// CORS Configuration with all HTTP methods
+const corsOptions = {
+  origin: crosOrigin,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  maxAge: 86400, // 24 hours
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

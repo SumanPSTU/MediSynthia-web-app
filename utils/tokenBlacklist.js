@@ -105,7 +105,7 @@ export const cleanupBlacklist = async () => {
     const result = await TokenBlacklist.deleteMany({
       expiresAt: { $lt: now }
     });
-    console.log(`Cleaned up ${result.deletedCount} expired tokens from blacklist`);
+    (`Cleaned up ${result.deletedCount} expired tokens from blacklist`);
   } catch (error) {
     console.error('Error cleaning up blacklist:', error);
   }
