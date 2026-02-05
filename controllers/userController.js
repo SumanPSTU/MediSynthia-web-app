@@ -147,6 +147,12 @@ export const verification = async (req, res) => {
         message: "User not found"
       })
     }
+    if(admin.isVefiried){
+      return res.status(400).json({
+        success: false,
+        message: "User already verified"
+      })
+    }
 
     user.token = null
     user.isVerified = true
