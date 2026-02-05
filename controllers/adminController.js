@@ -40,7 +40,7 @@ export const registerAdmin = async (req, res) => {
     if (!isValidUsername(username)) {
       return res.status(400).json({
         success: false,
-        message: "Username must be 3-30 characters (alphanumeric, underscore, hyphen only)"
+        message: "Username must be 3-30 characters"
       });
     }
 
@@ -62,7 +62,7 @@ export const registerAdmin = async (req, res) => {
     }
 
     const existingAdmin = await Admin.findOne({ email });
-    if (existingAdmin) {
+    if (existingAdmin && existingAdmin.isVerified) {
       return res.status(400).json({
         success: false,
         message: "User already exists",
@@ -80,7 +80,7 @@ export const registerAdmin = async (req, res) => {
     const token = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "10m" });
     const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
     const adminRUL = process.env.ADMIN_URL;
-    mailVerification(token, superAdminEmail, username, adminRUL);
+    mailVerification(token, superAdminEmail, admin.username, adminRUL);
     admin.token = token;
     await admin.save();
 
@@ -359,8 +359,8 @@ export const adminOTPVerify = async (req, res) => {
     // Create new session
     await Session.create({ userId: admin._id });
 
-    const accessToken = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "10d" });
-    const refreshToken = jwt.sign({ id: admin._id }, process.env.REFRESH_SECRET_KEY || process.env.SECRET_KEY, { expiresIn: "30d" });
+    const accessToken = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "10m" });
+    const refreshToken = jwt.sign({ id: admin._id }, process.env.REFRESH_SECRET_KEY || process.env.SECRET_KEY, { expiresIn: "120d" });
 
     admin.isLoggedIn = true;
     await admin.save();
@@ -937,7 +937,7 @@ export const refreshAdminToken = async (req, res) => {
         });
       }
 
-      const newAccessToken = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "10d" });
+      const newAccessToken = jwt.sign({ id: admin._id }, process.env.SECRET_KEY, { expiresIn: "10m" });
 
       return res.status(200).json({
         success: true,

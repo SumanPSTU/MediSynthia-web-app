@@ -12,11 +12,6 @@ const userSchema = new mongoose.Schema({
     otp: { type: String, default: null },
     otpExpired: { type: Date, default: null },
     
-    // Google Authentication
-    googleId: { type: String, default: null }, // Store Google user ID
-    photoURL: { type: String, default: null }, // Store Google profile picture
-    authMethod: { type: String, enum: ['email', 'google'], default: 'email' },
-
     address: {
         street: { type: String, default: "" },
         city: { type: String, default: "" },

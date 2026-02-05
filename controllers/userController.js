@@ -277,8 +277,8 @@ export const loginUser = async (req, res) => {
     await Session.create({ userId: user._id });
 
     // generate access & refresh tokens
-    const accessToken = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: "30d" });
-    const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_SECRET_KEY || process.env.SECRET_KEY, { expiresIn: "30d" });
+    const accessToken = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: "10m" });
+    const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_SECRET_KEY || process.env.SECRET_KEY, { expiresIn: "120d" });
 
     user.isLoggedIn = true;
     await user.save();
@@ -695,7 +695,7 @@ export const refreshUserToken = async (req, res) => {
         });
       }
 
-      const newAccessToken = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: "30d" });
+      const newAccessToken = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: "10m" });
 
       return res.status(200).json({
         success: true,
@@ -725,6 +725,7 @@ export const googleAuth = async (req, res) => {
   try {
     const { idToken, name, email, photoURL } = req.body;
 
+    // Validate required fields
     if (!idToken || !email || !name) {
       return res.status(400).json({
         success: false,
@@ -744,31 +745,42 @@ export const googleAuth = async (req, res) => {
     const sanitizedUsername = sanitizeUsername(name);
 
     try {
-      // Verify the Google ID token using Firebase Admin SDK would be ideal,
-      // but for now we'll trust the frontend and validate on backend
-      // In production, use: admin.auth().verifyIdToken(idToken)
-      
+      // Check if user already exists by email
       let user = await User.findOne({ email: sanitizedEmail });
 
       if (user) {
-        // User exists - update Google ID if not already set
-        if (!user.googleId) {
-          user.googleId = email; // Use email as unique identifier for Google
-          user.authMethod = 'google';
-          if (photoURL) user.photoURL = photoURL;
-          await user.save();
+        // User exists - update Google auth data
+        console.log(`User exists, updating Google auth data for: ${sanitizedEmail}`);
+        
+        user.googleId = email; // Update Google ID
+        user.authMethod = 'google'; // Set auth method
+        
+        if (photoURL) {
+          user.photoURL = photoURL; // Update profile picture
         }
+        
+        if (!user.isVerified) {
+          user.isVerified = true; // Google users are verified
+        }
+        
+        user.isLoggedIn = true;
+        await user.save();
+        
+        console.log(`Successfully updated user: ${user._id}`);
       } else {
-        // Create new user
+        // Create new user with Google auth data
+        console.log(`Creating new user from Google auth: ${sanitizedEmail}`);
+        
         user = await User.create({
           username: sanitizedUsername,
           email: sanitizedEmail,
           password: null, // No password for Google auth
-          phone: null, // Optional for Google auth
-          googleId: email, // Use email as Google identifier
-          photoURL: photoURL || null,
-          authMethod: 'google',
+          phone: null, // Optional for Google auth users
+          googleId: email, // Store Google ID
+          photoURL: photoURL || null, // Store profile picture URL
+          authMethod: 'google', // Set authentication method
           isVerified: true, // Google users are pre-verified
+          isLoggedIn: true,
           address: {
             street: "",
             city: "",
@@ -784,26 +796,42 @@ export const googleAuth = async (req, res) => {
             country: "Bangladesh"
           }
         });
+        
+        console.log(`Successfully created new user: ${user._id}`);
+      }
+
+      // Check if user is blocked
+      if (user.isBlocked) {
+        return res.status(403).json({
+          success: false,
+          message: "Your account has been blocked. Please contact support."
+        });
+      }
+
+      // Create session
+      const existingSession = await Session.findOne({ userId: user._id });
+      if (existingSession) {
+        await Session.deleteOne({ userId: user._id });
       }
 
       // Generate JWT tokens
       const accessToken = jwt.sign(
         { id: user._id, email: user.email },
         process.env.SECRET_KEY,
-        { expiresIn: "30d" }
+        { expiresIn: "10m" }
       );
 
       const refreshToken = jwt.sign(
         { id: user._id },
         process.env.REFRESH_SECRET_KEY || process.env.SECRET_KEY,
-        { expiresIn: "30d" }
+        { expiresIn: "120d" }
       );
 
       // Save refresh token to session
       await Session.create({
         userId: user._id,
         refreshToken,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        expiresAt: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000)
       });
 
       return res.status(200).json({
@@ -815,23 +843,25 @@ export const googleAuth = async (req, res) => {
           id: user._id,
           email: user.email,
           username: user.username,
-          photoURL: user.photoURL
+          photoURL: user.photoURL,
+          authMethod: user.authMethod
         }
       });
 
     } catch (error) {
-      console.error("Google auth error:", error);
+      console.error("Google auth database error:", error);
       return res.status(500).json({
         success: false,
-        message: "Google authentication failed: " + error.message
+        message: "Failed to process Google authentication",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
 
   } catch (error) {
-    console.error("Google auth error:", error);
+    console.error("Google auth validation error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || "Google authentication failed"
+      message: "Google authentication failed"
     });
   }
 };

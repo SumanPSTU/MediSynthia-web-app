@@ -15,6 +15,7 @@ export const getProduct = async (req, res) => {
     const subCategory = req.query.subCategory;
     const search = req.query.search;
     const exclude = req.query.exclude;
+    const productGeniric = req.query.productGeniric;
 
     const skip = (page - 1) * limit;
 
@@ -22,6 +23,7 @@ export const getProduct = async (req, res) => {
     const filter = {};
     if (category) filter.category = category;
     if (subCategory) filter.subCategory = subCategory;
+    if (productGeniric) filter.productGeniric = productGeniric;
     if (search) {
       // Use regex to search for products where the name contains the search term
       // This will match "Ace" with "Ace", "Ace Plus", "Ace Pro", etc.
@@ -36,7 +38,8 @@ export const getProduct = async (req, res) => {
       .skip(skip)
       .limit(limit)
       .populate('category')
-      .populate('subCategory');
+      .populate('subCategory')
+      .populate('productGeniric');
     const total = await Products.countDocuments(filter);
 
     // Return empty array with success if no products found (instead of 404)
@@ -98,7 +101,9 @@ export const getProductById = async (req, res) => {
 
     const product = await Products.findById(id)
       .populate("category")
-      .populate("subCategory").populate("supplier");
+      .populate("subCategory")
+      .populate("supplier")
+      .populate("productGeniric");
 
     if (!product) {
       return res.status(404).json({
@@ -607,4 +612,37 @@ export const getProductCount = async (req, res) => {
       message: error.message
     });
   }
+};
+
+
+// get pruduct by generic
+export const getProductByGeneric = async (req, res) => {
+  try {
+    const { genericName } = req.params; 
+    if (!genericName) {
+      return res.status(400).json({
+        success: false,
+        message: "Generic name is required"
+      });
+    }
+
+    const products = await Products.find({ productGeniric: genericName })
+      .populate("category")
+      .populate("subCategory");
+    if (!products || products.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No products found for the given generic name"
+      });
+    } 
+    return res.status(200).json({
+      success: true,
+      products
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  } 
 };

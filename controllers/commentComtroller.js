@@ -146,8 +146,16 @@ export const deleteComment = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
+    const userRole = req.user.role; // user or admin
 
-    const comment = await Comment.findOne({ _id: id, userId });
+    let comment;
+    
+    // If admin, can delete any comment. If user, can only delete own comments
+    if (userRole === 'admin') {
+      comment = await Comment.findById(id);
+    } else {
+      comment = await Comment.findOne({ _id: id, userId });
+    }
 
     if (!comment) {
       return res.status(404).json({
@@ -174,7 +182,7 @@ export const deleteComment = async (req, res) => {
 
 export const replyToComment = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { commentId } = req.params;
     const { content } = req.body;
     const adminId = req.user?._id;
 
@@ -192,7 +200,7 @@ export const replyToComment = async (req, res) => {
       });
     }
 
-    const comment = await Comment.findOne({ _id: id, isDeleted: false });
+    const comment = await Comment.findOne({ _id: commentId, isDeleted: false });
 
     if (!comment) {
       return res.status(404).json({

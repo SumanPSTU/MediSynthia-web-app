@@ -60,7 +60,7 @@ export const createRateLimiter = (maxAttempts = 5, windowMs = 15 * 60 * 1000) =>
  * @param {number} windowMs - Time window in milliseconds
  * @returns {function} Express middleware
  */
-export const createEmailRateLimiter = (maxAttempts = 3, windowMs = 60 * 60 * 1000) => {
+export const createEmailRateLimiter = (maxAttempts = 3, windowMs = 3 * 60 * 1000) => {
   return (req, res, next) => {
     const email = req.params.email || req.body.email;
     

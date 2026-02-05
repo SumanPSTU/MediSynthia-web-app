@@ -29,7 +29,7 @@ const router = express.Router();
 
 // Rate limiters
 const registerLimiter = createRateLimiter(5, 15 * 60 * 1000); // 5 attempts per 15 minutes
-const loginLimiter = createRateLimiter(100, 1 * 60 * 1000); // 100 attempts per minute (effectively no limit)
+const loginLimiter = createRateLimiter(5, 60 * 1000); // 5 attempts per 60 seconds (lockout duration: 60 seconds)
 const emailLimiter = createEmailRateLimiter(3, 60 * 60 * 1000); // 3 attempts per hour
 const resendVerificationLimiter = createResendVerificationLimiter(); // Allow resend after 2 minutes
 

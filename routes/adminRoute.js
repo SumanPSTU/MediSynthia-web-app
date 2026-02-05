@@ -11,16 +11,18 @@ const router = express.Router()
 
 // Rate limiters
 const registerLimiter = createRateLimiter(5, 15 * 60 * 1000); // 5 attempts per 15 minutes
-const loginLimiter = createRateLimiter(3, 60 * 1000); // 3 attempts per 60 seconds
+const loginLimiter = createRateLimiter(5, 60 * 1000); // 5 attempts per 60 seconds (lockout duration: 60 seconds)
 const emailLimiter = createEmailRateLimiter(3, 60 * 60 * 1000); // 3 attempts per hour
+const otpVerifyLimiter = createEmailRateLimiter(10, 10 * 60 * 1000); // 10 attempts per 10 minutes for OTP verification
+const otpResendLimiter = createEmailRateLimiter(5, 5 * 60 * 1000); // 5 attempts per 5 minutes for OTP resend
 
 router.post('/register', registerLimiter, registerAdmin);
 router.post('/verify', verification);
 router.post('/resend-email/:email', emailLimiter, resendMailForVerification)
 router.post('/login', loginLimiter, adminLoggedIn);
 router.post('/refresh-token', refreshAdminToken);
-router.post('/verify/:email', emailLimiter, adminOTPVerify);
-router.post('/resend-otp/:email', emailLimiter, resendOtp);
+router.post('/verify/:email', otpVerifyLimiter, adminOTPVerify);
+router.post('/resend-otp/:email', otpResendLimiter, resendOtp);
 router.get('/alluser', adminAuthentication, getAllUser);
 router.get('/search-user',searchUser)
 router.patch('/block-user/:userId', adminAuthentication, blockUser);

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { SubCategory } from "../models/subCategoryModel.js";
+import { Products } from "../models/productModel.js";
 import fs from "fs";
 import path from "path";
 
@@ -7,50 +8,29 @@ const CATEGORY_DIR = path.resolve("uploads/subCategory");
 
 export const addSubCategory = async (req, res) => {
   try {
-    const { name, category, description } = req.body;
-    const discountPercentage = req.body.discountPercentage !== undefined ? Number(req.body.discountPercentage) : undefined;
+    const { name, category, description, discountPercentage } = req.body;
     const file = req.file;
 
-    if (!name || !category) {
-      return res
-        .status(400)
-        .json({ message: "Subcategory name and category are required" });
-    }
-
-    // Validate category ObjectId
-    if (!mongoose.Types.ObjectId.isValid(category)) {
+    if (category && !mongoose.Types.ObjectId.isValid(category)) {
       return res.status(400).json({ message: "Invalid category ID" });
     }
 
-    // Prevent duplicates
-    const existing = await SubCategory.findOne({ name, category });
-    if (existing) {
-      return res
-        .status(400)
-        .json({ message: "Subcategory already exists for this category" });
-    }
-
-    if (discountPercentage !== undefined) {
-      if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
-        return res.status(400).json({ message: "discountPercentage must be a number between 0 and 100" });
-      }
+    let imageUrl = null;
+    if (file) {
+      imageUrl = `/uploads/subCategory/${file.filename}`;
     }
 
     const subCategory = new SubCategory({
       name,
       category,
       description,
-      imageUrl: file ? `/uploads/subCategory/${file.filename}` : null,
       discountPercentage: discountPercentage || 0,
+      imageUrl,
     });
 
     await subCategory.save();
-
-    if (discountPercentage >= 0) {
-      await Products.updateMany(
-        { subCategory: subCategory._id },
-        { $set: { discountPercentage } }
-      );
+    if(discountPercentage !== undefined && discountPercentage !== null){
+      await updateProduct(subCategory._id,discountPercentage);
     }
 
     res.status(201).json({
@@ -59,11 +39,14 @@ export const addSubCategory = async (req, res) => {
       subCategory,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error adding subcategory", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error creating subcategory",
+      error: error.message,
+    });
   }
 };
+
 
 // -------------------------
 // Get All Subcategories
@@ -150,9 +133,12 @@ export const updateSubCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, category, description } = req.body;
-    const discountPercentage = req.body.discountPercentage !== undefined ? Number(req.body.discountPercentage) : undefined;
-    const file = req.file;
+    const discountPercentage =
+      req.body.discountPercentage !== undefined
+        ? Number(req.body.discountPercentage)
+        : undefined;
 
+    const file = req.file;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid subcategory ID" });
     }
@@ -181,15 +167,25 @@ export const updateSubCategory = async (req, res) => {
     if (name) subCategory.name = name;
     if (category) subCategory.category = category;
     if (description) subCategory.description = description;
+
     if (discountPercentage !== undefined) {
-      if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
-        return res.status(400).json({ message: "discountPercentage must be a number between 0 and 100" });
+      if (
+        isNaN(discountPercentage) ||
+        discountPercentage < 0 ||
+        discountPercentage > 100
+      ) {
+        return res
+          .status(400)
+          .json({ message: "discountPercentage must be a number between 0 and 100" });
       }
+
       subCategory.discountPercentage = discountPercentage;
     }
 
     await subCategory.save();
-
+    if(discountPercentage !== undefined){
+      await updateProduct(subCategory._id,discountPercentage);
+    }
     res.status(200).json({
       success: true,
       message: "Subcategory updated successfully",
@@ -203,6 +199,7 @@ export const updateSubCategory = async (req, res) => {
     });
   }
 };
+
 
 // -------------------------
 // Delete Subcategory
@@ -243,6 +240,21 @@ export const deleteSubCategory = async (req, res) => {
       message: "Error deleting subcategory",
       error: error.message,
     });
+  }
+};
+
+const updateProduct = async (subCategoryId,discountPercentage) => {
+  try {
+    // Update all products under this subcategory
+    const product = await Products.find({ subCategory: subCategoryId });
+    if(!product) return;
+    await Products.updateMany(
+      { subCategory: subCategoryId },
+      { $set: { discountPercentage: discountPercentage } }
+    ); 
+  }
+  catch (error) {
+    console.error("Error updating products' discountPercentage:", error);
   }
 };
 
