@@ -1,6 +1,5 @@
 import express from "express";
 import {  userAuthentication } from '../middleware/isAuthentication.js'
-import { createRateLimiter, createEmailRateLimiter, createResendVerificationLimiter } from '../middleware/rateLimiter.js';
 import {
     changePassword,
     forgetPassword, loginUser, logoutUser,
@@ -16,10 +15,6 @@ import {
     updateUserProfile
 } from "../controllers/userController.js";
 import {
-    userSchema, 
-    validateUser
- } from "../validators/userValidators.js";
-import {
     createComment,
     getCommentsByProduct,
     updateComment,
@@ -27,23 +22,18 @@ import {
 } from "../controllers/commentComtroller.js";
 const router = express.Router();
 
-// Rate limiters
-const registerLimiter = createRateLimiter(5, 15 * 60 * 1000); // 5 attempts per 15 minutes
-const loginLimiter = createRateLimiter(5, 60 * 1000); // 5 attempts per 60 seconds (lockout duration: 60 seconds)
-const emailLimiter = createEmailRateLimiter(3, 60 * 60 * 1000); // 3 attempts per hour
-const resendVerificationLimiter = createResendVerificationLimiter(); // Allow resend after 2 minutes
 
-router.post("/register", registerLimiter, validateUser(userSchema), registerUser);
+router.post("/register", registerUser);
 router.post("/verify", verification);
-router.post("/resendverify", resendVerificationLimiter, resendVerification);
-router.post("/google-auth", loginLimiter, googleAuth);
+router.post("/resendverify",resendVerification);
 
-router.post("/login", loginLimiter, loginUser);
+
+router.post("/login", loginUser);
 router.post("/refresh-token", refreshUserToken);
 router.post("/logout", userAuthentication, logoutUser);
 router.post("/forget", forgetPassword);
-router.post("/verifyotp/:email", emailLimiter, verifyOtp)
-router.post("/changepass/:email", emailLimiter, changePassword)
+router.post("/verifyotp/:email",  verifyOtp)
+router.post("/changepass/:email", changePassword)
 router.put('/deleveryaddress',userAuthentication,updateDeliveryAddress)
 router.put('/updatebasicaddress',userAuthentication,updateUserBasicInfo)
 router.put('/profile', userAuthentication, updateUserProfile)

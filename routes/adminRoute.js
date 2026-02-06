@@ -10,9 +10,9 @@ import { getCommentsByProduct,updateComment,deleteComment } from '../controllers
 const router = express.Router()
 
 // Rate limiters
-const registerLimiter = createRateLimiter(5, 15 * 60 * 1000); // 5 attempts per 15 minutes
+const registerLimiter = createRateLimiter(5, 10 * 60 * 1000); // 5 attempts per 10 minutes
 const loginLimiter = createRateLimiter(5, 60 * 1000); // 5 attempts per 60 seconds (lockout duration: 60 seconds)
-const emailLimiter = createEmailRateLimiter(3, 60 * 60 * 1000); // 3 attempts per hour
+const emailLimiter = createEmailRateLimiter(25, 60 * 60 * 1000); // 3 attempts per hour
 const otpVerifyLimiter = createEmailRateLimiter(10, 10 * 60 * 1000); // 10 attempts per 10 minutes for OTP verification
 const otpResendLimiter = createEmailRateLimiter(5, 5 * 60 * 1000); // 5 attempts per 5 minutes for OTP resend
 

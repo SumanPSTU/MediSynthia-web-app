@@ -18,6 +18,7 @@ export const registerUser = async (req, res) => {
         message: "All fields are required!",
       });
     }
+    console.log(req.body);
 
     // Sanitize and validate inputs
     if (!isValidEmail(email)) {
@@ -27,12 +28,7 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    if (!isValidUsername(username)) {
-      return res.status(400).json({
-        success: false,
-        message: "Username contains invalid characters"
-      });
-    }
+    
 
     if (!isValidPhone(phone)) {
       return res.status(400).json({
