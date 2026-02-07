@@ -119,11 +119,21 @@ app.use((req, res) => {
 
 // HTTP server
 const httpServer = createServer(app);
-// Socket.IO server
+// Socket.IO server - use same CORS configuration as Express
 const io = new Server(httpServer, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin || corsOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`Socket.IO CORS request blocked from origin: ${origin}`);
+        callback(new Error('Not allowed by CORS policy'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
   },
 });
 

@@ -53,7 +53,7 @@ export const registerUser = async (req, res) => {
 
     const existingUser = await User.findOne({ email: sanitizedEmail });
 
-    if (existingUser) {
+    if (existingUser && existingUser.isVerified) {
       return res.status(400).json({
         success: false,
         message: "User already exists",
@@ -143,7 +143,7 @@ export const verification = async (req, res) => {
         message: "User not found"
       })
     }
-    if(admin.isVefiried){
+    if(user.isVerified){
       return res.status(400).json({
         success: false,
         message: "User already verified"
@@ -431,15 +431,28 @@ export const verifyOtp = async (req, res) => {
 }
 
 export const changePassword = async (req, res) => {
-  const email = req.params.email;
+  const emailParam = req.params.email;
 
-
-  if (!email) {
-    return res.status(404).json({
+  // Validate email parameter exists
+  if (!emailParam || emailParam.trim() === "") {
+    return res.status(400).json({
       success: false,
-      message: "Email not found"
-    })
+      message: "Email is required"
+    });
   }
+
+  // Validate email format
+  if (!isValidEmail(emailParam)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid email format"
+    });
+  }
+
+  // Sanitize email input
+  const email = sanitizeEmail(emailParam);
+
+  // Validate password fields
   const { password, confirmPassword } = req.body;
   if (!password || !confirmPassword) {
     return res.status(400).json({

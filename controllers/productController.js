@@ -15,7 +15,7 @@ export const getProduct = async (req, res) => {
     const subCategory = req.query.subCategory;
     const search = req.query.search;
     const exclude = req.query.exclude;
-    const productGeniric = req.query.productGeniric;
+    const productGeneric = req.query.productGeneric;
 
     const skip = (page - 1) * limit;
 
@@ -23,7 +23,7 @@ export const getProduct = async (req, res) => {
     const filter = {};
     if (category) filter.category = category;
     if (subCategory) filter.subCategory = subCategory;
-    if (productGeniric) filter.productGeniric = productGeniric;
+    if (productGeneric) filter.productGeneric = productGeneric;
     if (search) {
       // Use regex to search for products where the name contains the search term
       // This will match "Ace" with "Ace", "Ace Plus", "Ace Pro", etc.
@@ -39,7 +39,7 @@ export const getProduct = async (req, res) => {
       .limit(limit)
       .populate('category')
       .populate('subCategory')
-      .populate('productGeniric');
+      .populate('productGeneric');
     const total = await Products.countDocuments(filter);
 
     // Return empty array with success if no products found (instead of 404)
@@ -103,7 +103,7 @@ export const getProductById = async (req, res) => {
       .populate("category")
       .populate("subCategory")
       .populate("supplier")
-      .populate("productGeniric");
+      .populate("productGeneric");
 
     if (!product) {
       return res.status(404).json({
@@ -177,7 +177,7 @@ export const addProduct = async (req, res) => {
     const newProduct = await Products.create({
       productId: data.productId || undefined,
       productName: data.productName.trim(),
-      productGeniric:data.productGeniricName || undefined,
+      productGeneric:data.productGenericName || undefined,
       productSuplier: data.productSuplier || undefined,
 
       strength: data.strength || undefined,
@@ -244,7 +244,7 @@ export const updateProduct = async (req, res) => {
     // Build only allowed updated fields
     const updatedFields = {
       productName: data.productName?.trim(),
-      productGeniric: data.productGeniricName || undefined,
+      productGeneric: data.productGenericName || undefined,
       productSuplier: data.productSuplier || undefined,
       strength: data.strength || undefined,
       dose: data.dose || undefined,
@@ -557,7 +557,7 @@ export const searchProducts = async (req, res) => {
      const products = await Products.find({
           $or: [
             { productName: { $regex: `^${search}`, $options: "i" } },
-            { productGeniric: { $regex: `^${search}`, $options: "i" } },
+            { productGeneric: { $regex: `^${search}`, $options: "i" } },
             
           ]
         }).limit(20);
@@ -626,7 +626,7 @@ export const getProductByGeneric = async (req, res) => {
       });
     }
 
-    const products = await Products.find({ productGeniric: genericName })
+    const products = await Products.find({ productGeneric: genericName })
       .populate("category")
       .populate("subCategory");
     if (!products || products.length === 0) {

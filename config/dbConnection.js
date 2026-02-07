@@ -1,23 +1,26 @@
 import mongoose from "mongoose"
 
 let isConnecting = false;
+let connectionPromise = null;
 
 const connectionDB = async () => {
-    // Prevent multiple simultaneous connection attempts
-    if (isConnecting) {
-        console.log('Connection attempt already in progress...');
-        return;
+    // Return existing connection if already connected
+    if (mongoose.connection.readyState === 1) {
+        console.log('Database already connected');
+        return mongoose.connection;
+    }
+
+    // Return pending promise if connection attempt is in progress
+    if (isConnecting && connectionPromise) {
+        console.log('Connection attempt already in progress, waiting...');
+        return connectionPromise;
     }
 
     isConnecting = true;
 
-    try {
-        // Check if already connected
-        if (mongoose.connection.readyState === 1) {
-            console.log('Database already connected');
-            isConnecting = false;
-            return;
-        }
+    // Create the connection promise
+    connectionPromise = (async () => {
+        try {
 
         const conn = await mongoose.connect(process.env.DB_URL, {
             connectTimeoutMS: 60000,        // Increase to 60 seconds
@@ -30,26 +33,30 @@ const connectionDB = async () => {
             family: 4, // Use IPv4 (helps with some connection issues)
         });
 
-        console.log('✅ Database connected successfully');
-        console.log(`Connected to MongoDB at: ${conn.connection.host}`);
-        isConnecting = false;
-        return conn;
+            console.log('✅ Database connected successfully');
+            console.log(`Connected to MongoDB at: ${conn.connection.host}`);
+            isConnecting = false;
+            return conn;
+        } catch (error) {
+            console.error("❌ Mongo connection error:", error.message);
+            isConnecting = false;
+            connectionPromise = null;
 
-    } catch (error) {
-        console.error("❌ Mongo connection error:", error.message);
-        isConnecting = false;
+            // Only retry if it's a network error, not an auth error
+            if (error.message.includes('authentication failed') || error.message.includes('invalid password')) {
+                console.error("Authentication error - check your MongoDB credentials in .env");
+                throw error;
+            }
 
-        // Only retry if it's a network error, not an auth error
-        if (error.message.includes('authentication failed') || error.message.includes('invalid password')) {
-            console.error("Authentication error - check your MongoDB credentials in .env");
+            // Retry connection after 5 seconds
+            setTimeout(() => {
+                connectionDB();
+            }, 5000);
             throw error;
         }
+    })();
 
-        // Retry connection after 5 seconds
-        setTimeout(() => {
-            connectionDB();
-        }, 5000);
-    }
+    return connectionPromise;
 }
 
 export default connectionDB;
