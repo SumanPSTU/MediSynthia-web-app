@@ -20,13 +20,40 @@ export const createOrder = async (req, res) => {
       paymentMethod,
       items,
     } = req.body;
-    const selectedCartItemIds = items.map(item => item.productId);
+
+    // Validate required fields
     if (!shippingAddress) {
       return res.status(400).json({
         success: false,
         message: "Shipping address is required"
       });
     }
+
+    if (!paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment method is required"
+      });
+    }
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Order items are required"
+      });
+    }
+
+    // Validate address fields
+    if (!shippingAddress.street || !shippingAddress.city || !shippingAddress.state) {
+      return res.status(400).json({
+        success: false,
+        message: "Address must include street, city, and state"
+      });
+    }
+
+    const selectedCartItemIds = items
+      .map(item => item.productId || item._id)
+      .filter(Boolean);
 
     
     
@@ -50,11 +77,21 @@ export const createOrder = async (req, res) => {
         )
         : cart.items;
 
-
     if (checkoutItems.length === 0) {
       return res.status(400).json({
         success: false,
         message: "Selected items not found in cart"
+      });
+    }
+
+    // Validate all selected items have required data
+    const itemsWithMissingData = items.filter(item => 
+      !item.productId && !item._id
+    );
+    if (itemsWithMissingData.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Some items are missing product ID"
       });
     }
 
@@ -102,45 +139,85 @@ export const createOrder = async (req, res) => {
     const subtotal = totalAmount;
     totalAmount += deliveryCharge;
 
+    // Normalize address object (handle both zipCode and postalCode)
+    const normalizedAddress = {
+      street: shippingAddress.street?.trim() || "",
+      city: shippingAddress.city?.trim() || "",
+      state: shippingAddress.state?.trim() || "",
+      zipCode: (shippingAddress.zipCode || shippingAddress.postalCode || "").toString().trim(),
+      country: shippingAddress.country || "Bangladesh"
+    };
+
+    // Validate order items are not empty
+    if (orderItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Order must contain at least one item"
+      });
+    }
+
+    // Check if order with same ID already exists (prevent duplicates)
+    if (orderId) {
+      const existingOrder = await Order.findOne({ orderId });
+      if (existingOrder) {
+        return res.status(409).json({
+          success: false,
+          message: "Order with this ID already exists. Please use a unique order ID."
+        });
+      }
+    }
+
     const order = await Order.create({
-      orderId: orderId || `ORD${Date.now()}`,
+      orderId: orderId || undefined,
       userId,
       items: orderItems,
       subtotal,
       deliveryCharge,
       totalAmount,
-      shippingAddress,
+      shippingAddress: normalizedAddress,
       paymentMethod
     });
 
     /* ======================================================
        3️⃣ REMOVE ONLY CHECKED-OUT ITEMS
     ====================================================== */
-    // After creating the order
-
-    if (Array.isArray(selectedCartItemIds) && selectedCartItemIds.length > 0) {
-      cart.items = cart.items.filter(
-        item => !selectedCartItemIds.includes(item._id.toString())
-      );
-      cart.markModified("items"); // ensures Mongoose notices array change
-      await cart.save();
+    // After creating the order, remove items from cart
+    try {
+      if (Array.isArray(selectedCartItemIds) && selectedCartItemIds.length > 0) {
+        cart.items = cart.items.filter(
+          item => !selectedCartItemIds.includes(item._id.toString())
+        );
+        cart.markModified("items");
+        await cart.save();
+      }
+    } catch (cartError) {
+      console.error("Warning: Error removing items from cart:", cartError.message);
     }
 
-    
-
+    const populatedOrder = await Order.findById(order._id)
+      .populate("items.productId", "productName productImgUrl")
+      .populate("userId", "name email phone");
 
     res.status(201).json({
       success: true,
       message: "Order created successfully",
-      order,
+      order: populatedOrder,
       remainingCartItems: cart.items
     });
 
   } catch (error) {
-    console.error("Error in createOrder:", error.message);
+    console.error("Error in createOrder:", error);
+    
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "This order ID already exists. Please use a unique ID."
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message || "Failed to create order"
     });
   }
 };
