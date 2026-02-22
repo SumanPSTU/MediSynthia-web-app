@@ -12,11 +12,11 @@ const setupChatHandlers = (io) => {
     // User joins their personal channel
     socket.on("joinUser", (userId) => {
       socket.join(userId);
-      
-      // Also join "admin" channel if user is admin (has _id as numeric or UUID)
-      if (userId && userId !== 'admin' && userId !== 'guest' && !userId.startsWith('guest_')) {
-        socket.join('admin');
-      }
+
+      // Do NOT auto-join non-admin users into the 'admin' room here.
+      // Clients that represent admin users should explicitly join 'admin'
+      // by emitting `joinUser` with the value 'admin' or by emitting
+      // their admin id AND also emitting `joinUser` with 'admin'.
     });
 
     // Send direct message to a specific user

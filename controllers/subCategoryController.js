@@ -29,9 +29,7 @@ export const addSubCategory = async (req, res) => {
     });
 
     await subCategory.save();
-    if(discountPercentage !== undefined && discountPercentage !== null){
-      await updateProduct(subCategory._id,discountPercentage);
-    }
+    
 
     res.status(201).json({
       success: true,
