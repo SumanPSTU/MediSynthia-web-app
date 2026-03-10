@@ -18,7 +18,6 @@ export const registerUser = async (req, res) => {
         message: "All fields are required!",
       });
     }
-    console.log(req.body);
 
     // Sanitize and validate inputs
     if (!isValidEmail(email)) {
@@ -765,7 +764,6 @@ export const googleAuth = async (req, res) => {
 
       if (user) {
         // User exists - update Google auth data
-        console.log(`User exists, updating Google auth data for: ${sanitizedEmail}`);
         
         user.googleId = email; // Update Google ID
         user.authMethod = 'google'; // Set auth method
@@ -781,10 +779,8 @@ export const googleAuth = async (req, res) => {
         user.isLoggedIn = true;
         await user.save();
         
-        console.log(`Successfully updated user: ${user._id}`);
       } else {
         // Create new user with Google auth data
-        console.log(`Creating new user from Google auth: ${sanitizedEmail}`);
         
         user = await User.create({
           username: sanitizedUsername,
@@ -812,7 +808,6 @@ export const googleAuth = async (req, res) => {
           }
         });
         
-        console.log(`Successfully created new user: ${user._id}`);
       }
 
       // Check if user is blocked

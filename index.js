@@ -36,7 +36,6 @@ const corsOrigins = process.env.CORS_ORIGINS
 // Express app
 const app = express();
 app.use('/upload', uploadRoute);
-console.log("CORS Origins:", corsOrigins);
 
 // CORS Configuration with all HTTP methods
 const corsOptions = {

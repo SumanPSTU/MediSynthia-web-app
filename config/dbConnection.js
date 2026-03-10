@@ -6,13 +6,11 @@ let connectionPromise = null;
 const connectionDB = async () => {
     // Return existing connection if already connected
     if (mongoose.connection.readyState === 1) {
-        console.log('Database already connected');
         return mongoose.connection;
     }
 
     // Return pending promise if connection attempt is in progress
     if (isConnecting && connectionPromise) {
-        console.log('Connection attempt already in progress, waiting...');
         return connectionPromise;
     }
 
@@ -33,8 +31,6 @@ const connectionDB = async () => {
           
         });
 
-            console.log('✅ Database connected successfully');
-            console.log(`Connected to MongoDB at: ${conn.connection.host}`);
             isConnecting = false;
             return conn;
         } catch (error) {

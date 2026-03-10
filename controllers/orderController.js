@@ -98,13 +98,15 @@ export const createOrder = async (req, res) => {
     }
 
     const computeEffectivePrice = (p) => {
+      if (!p) return 0;
+
       const price = Number(p.productPrice) || 0;
       const prodDisc = Number(p.discountPercentage) || 0;
-      const subDisc = p.subCategory
-        ? Number(p.subCategory.discountPercentage || 0)
+      const subDisc = p.subCategory && p.subCategory.discountPercentage
+        ? Number(p.subCategory.discountPercentage)
         : 0;
-      const catDisc = p.category
-        ? Number(p.category.discountPercentage || 0)
+      const catDisc = p.category && p.category.discountPercentage
+        ? Number(p.category.discountPercentage)
         : 0;
 
       const applied = prodDisc || subDisc || catDisc;
@@ -117,10 +119,17 @@ export const createOrder = async (req, res) => {
     for (const item of checkoutItems) {
       let prod = item.productId;
 
-      if (!prod.category && !prod.subCategory) {
-        prod = await Products.findById(prod._id)
+      // Check if product exists and has populated category/subCategory
+      if (!prod || (!prod.category && !prod.subCategory)) {
+        prod = await Products.findById(prod._id || prod)
           .populate("category")
           .populate("subCategory");
+
+        // If product not found in database, skip this item
+        if (!prod) {
+          console.error(`Product not found: ${item.productId || item._id}`);
+          continue;
+        }
       }
 
       const price = computeEffectivePrice(prod);

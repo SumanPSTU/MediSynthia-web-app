@@ -16,7 +16,6 @@ const setupChatHandlers = (io) => {
       // If this is an admin joining, also join the 'admin' room for receiving messages
       if (userId === 'admin') {
         socket.join('admin');
-        console.log(`Admin joined admin room`);
       }
     });
 

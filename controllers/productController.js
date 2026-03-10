@@ -16,6 +16,7 @@ export const getProduct = async (req, res) => {
     const search = req.query.search;
     const exclude = req.query.exclude;
     const productGeneric = req.query.productGeneric;
+    const isAvailable = req.query.isAvailable; // Add availability filter
 
     const skip = (page - 1) * limit;
 
@@ -28,6 +29,10 @@ export const getProduct = async (req, res) => {
       // Use regex to search for products where the name contains the search term
       // This will match "Ace" with "Ace", "Ace Plus", "Ace Pro", etc.
       filter.productName = { $regex: `\\b${search}`, $options: 'i' };
+    }
+    // Add availability filter
+    if (isAvailable !== undefined && isAvailable !== null && isAvailable !== '') {
+      filter.isAvailable = isAvailable === 'true';
     }
     // Exclude current product by ID
     if (exclude && mongoose.Types.ObjectId.isValid(exclude)) {
