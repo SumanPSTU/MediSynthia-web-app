@@ -13,10 +13,11 @@ const setupChatHandlers = (io) => {
     socket.on("joinUser", (userId) => {
       socket.join(userId);
 
-      // Do NOT auto-join non-admin users into the 'admin' room here.
-      // Clients that represent admin users should explicitly join 'admin'
-      // by emitting `joinUser` with the value 'admin' or by emitting
-      // their admin id AND also emitting `joinUser` with 'admin'.
+      // If this is an admin joining, also join the 'admin' room for receiving messages
+      if (userId === 'admin') {
+        socket.join('admin');
+        console.log(`Admin joined admin room`);
+      }
     });
 
     // Send direct message to a specific user

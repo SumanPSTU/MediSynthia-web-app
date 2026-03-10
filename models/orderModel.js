@@ -87,10 +87,12 @@ const orderSchema = new mongoose.Schema({
 });
 
 // Generate order ID before saving
-orderSchema.pre('save', async function(next) {
+orderSchema.pre('save', function(next) {
   if (!this.orderId) {
-    const count = await mongoose.model('Order').countDocuments();
-    this.orderId = `ORD${10000 + count + 1}`;
+    // Use timestamp + random suffix to avoid duplicates
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    this.orderId = `ORD${timestamp}${random}`;
   }
   next();
 });

@@ -30,7 +30,7 @@ const connectionDB = async () => {
             maxPoolSize: 10,
             minPoolSize: 5,
             waitQueueTimeoutMS: 10000,
-            family: 4, // Use IPv4 (helps with some connection issues)
+          
         });
 
             console.log('✅ Database connected successfully');

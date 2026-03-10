@@ -145,17 +145,13 @@ connectionDB()
   .then((conn) => {
     if (conn || mongoose.connection.readyState === 1) {
       httpServer.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
-        console.log(`📊 Admin URL: ${process.env.ADMIN_URL}`);
-        console.log(`🛒 Frontend URL: ${process.env.FRONT_URL}`);
+        console.log(`🚀 Server is running on port ${PORT}`);
       });
     }
+    
   })
   .catch((err) => {
     console.error("Database connection failed:", err.message);
-    console.error("Please check:");
-    console.error("  1. Your MongoDB Atlas cluster is active");
-    console.error("  2. Your IP address is whitelisted in Network Access");
-    console.error("  3. Your connection string in .env is correct");
+    
     process.exit(1);
   });

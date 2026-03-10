@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 export const getProduct = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = parseInt(req.query.limit) || 100;
     const category = req.query.category;
     const subCategory = req.query.subCategory;
     const search = req.query.search;
@@ -39,7 +39,7 @@ export const getProduct = async (req, res) => {
       .limit(limit)
       .populate('category')
       .populate('subCategory')
-      .populate('productGeneric');
+      .populate('productGeneric').sort({ createdAt: -1 });
     const total = await Products.countDocuments(filter);
 
     // Return empty array with success if no products found (instead of 404)

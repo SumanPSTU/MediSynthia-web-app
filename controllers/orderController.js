@@ -51,8 +51,9 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    const selectedCartItemIds = items
-      .map(item => item.productId || item._id)
+    // collect either the cart item _id or its productId, whichever is present
+    const requestedIds = items
+      .map(item => item._id?.toString() || item.productId?.toString())
       .filter(Boolean);
 
     
@@ -71,10 +72,11 @@ export const createOrder = async (req, res) => {
     }
 
     const checkoutItems =
-      Array.isArray(selectedCartItemIds) && selectedCartItemIds.length > 0
-        ? cart.items.filter(i =>
-          selectedCartItemIds.includes(i._id.toString())
-        )
+      requestedIds.length > 0
+        ? cart.items.filter(ci =>
+            requestedIds.includes(ci._id.toString()) ||
+            requestedIds.includes(ci.productId.toString())
+          )
         : cart.items;
 
     if (checkoutItems.length === 0) {
@@ -183,9 +185,11 @@ export const createOrder = async (req, res) => {
     ====================================================== */
     // After creating the order, remove items from cart
     try {
-      if (Array.isArray(selectedCartItemIds) && selectedCartItemIds.length > 0) {
+      if (checkoutItems.length > 0) {
+        // Remove the checked-out items from cart
+        const checkedOutIds = checkoutItems.map(item => item._id.toString());
         cart.items = cart.items.filter(
-          item => !selectedCartItemIds.includes(item._id.toString())
+          item => !checkedOutIds.includes(item._id.toString())
         );
         cart.markModified("items");
         await cart.save();
