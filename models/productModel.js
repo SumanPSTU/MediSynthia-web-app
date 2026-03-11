@@ -8,9 +8,9 @@ const productSchema = new mongoose.Schema({
   strength: { type: String },
   dose: { type: String },
 
-  category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
-  subCategory: { type: mongoose.Schema.Types.ObjectId, ref: "SubCategory" },
-  supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
+  category: { type: mongoose.Schema.Types.ObjectId, ref: "Category",required:false },
+  subCategory: { type: mongoose.Schema.Types.ObjectId, ref: "SubCategory",required:false },
+  supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier",required:false },
 
   productImgUrl: { type: String, required: true },     
   productDescription: { type: String },

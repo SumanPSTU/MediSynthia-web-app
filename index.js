@@ -37,16 +37,11 @@ const corsOrigins = process.env.CORS_ORIGINS
 const app = express();
 app.use('/upload', uploadRoute);
 
-// CORS Configuration with all HTTP methods
+// CORS Configuration with all HTTP methods - Allow all origins for messenger
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || corsOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS request blocked from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS policy'));
-    }
+    // Allow all origins for messenger/chat functionality
+    callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
   credentials: true,
@@ -88,17 +83,7 @@ app.use('/', contactRoute);
 // Global error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled Error:', err);
-  
-  // Check if database is connected
-  const dbConnected = mongoose.connection.readyState === 1;
-  
-  if (!dbConnected) {
-    return res.status(503).json({
-      success: false,
-      message: 'Database connection lost. Please try again later.',
-      error: 'SERVICE_UNAVAILABLE'
-    });
-  }
+
 
   res.status(err.status || 500).json({
     success: false,
@@ -118,21 +103,13 @@ app.use((req, res) => {
 
 // HTTP server
 const httpServer = createServer(app);
-// Socket.IO server - use same CORS configuration as Express
+// Socket.IO server - allow all origins for messenger
 const io = new Server(httpServer, {
   cors: {
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin || corsOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`Socket.IO CORS request blocked from origin: ${origin}`);
-        callback(new Error('Not allowed by CORS policy'));
-      }
+      // Allow all origins for messenger/chat functionality
+      callback(null, true);
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
   },
 });
 
