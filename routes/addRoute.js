@@ -1,4 +1,3 @@
-
 import express from 'express'
 import {adminAuthentication} from '../middleware/isAuthentication.js'
 import { setAdd,getAdds,updateAdd,deleteAdd,toggleActiveStatus, getAllBanners } from '../controllers/addController.js';

@@ -1,25 +1,24 @@
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
-import fs from "fs";
-import path from "path";            
-import { fileURLToPath } from "url"; 
-import handlebars from "handlebars";
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import handlebars from 'handlebars';
 
-dotenv.config()
+dotenv.config();
 
-
-export const sendOtpMail = async (email, otp,user) => {
+export const sendOtpMail = async (email, otp, user, options = {}) => {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
 
   try {
     const emailTemplateSource = fs.readFileSync(
-      path.join(__dirname, "otpTemplate.hbs"),
-      "utf-8"
+      path.join(__dirname, 'otpTemplate.hbs'),
+      'utf-8',
     );
 
     const template = handlebars.compile(emailTemplateSource);
-    const digits = otp.toString().padStart(6, "0").split("");
+    const digits = otp.toString().padStart(6, '0').split('');
 
     const htmlToSend = template({
       d1: digits[0],
@@ -28,11 +27,17 @@ export const sendOtpMail = async (email, otp,user) => {
       d4: digits[3],
       d5: digits[4],
       d6: digits[5],
-      user: user || "User",
+      user: user || 'User',
+      title: options.title || 'Verification Code',
+      message:
+        options.message ||
+        'Use the one-time passcode (OTP) below to continue securely.',
+      expiryMinutes: options.expiryMinutes || 10,
+      year: new Date().getFullYear(),
     });
 
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      service: 'gmail',
       auth: {
         user: process.env.EMAIL_ADD,
         pass: process.env.APP_PASS,
@@ -42,13 +47,12 @@ export const sendOtpMail = async (email, otp,user) => {
     const mailConfiguration = {
       from: process.env.EMAIL_ADD,
       to: email,
-      subject: "OTP for Reset Password",
+      subject: options.subject || 'Your OTP Code',
       text: `Your OTP is: ${otp}`,
       html: htmlToSend,
     };
 
     await transporter.sendMail(mailConfiguration);
-    
   } catch (error) {
     throw error;
   }
